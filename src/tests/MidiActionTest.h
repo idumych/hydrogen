@@ -97,6 +97,8 @@ class MidiActionTest : public CppUnit::TestCase {
 	CPPUNIT_TEST( testStripVolumeAbsoluteAction );
 	CPPUNIT_TEST( testStripVolumeRelativeAction );
 	CPPUNIT_TEST( testTapTempoAction );
+	CPPUNIT_TEST( testEventMapPerInstrument );
+	CPPUNIT_TEST( testEventMapRemoveAll );
 	CPPUNIT_TEST( testToggleMetronomeAction );
 	CPPUNIT_TEST( testUndoAction );
 	CPPUNIT_TEST( testUnmuteAction );
@@ -112,6 +114,11 @@ class MidiActionTest : public CppUnit::TestCase {
 	 * events. */
 	void testBeatCounterAction();
 #endif
+	/** The same CC can drive the same action on different strips;
+	 * removing one binding keeps the other. */
+	void testEventMapPerInstrument();
+	/** Removing several matching bindings in one go. */
+	void testEventMapRemoveAll();
 	void testBpmCcRelativeAction();
 	void testBpmDecreaseAction();
 	void testBpmFineCcRelativeAction();

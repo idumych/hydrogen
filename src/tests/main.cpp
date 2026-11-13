@@ -112,6 +112,7 @@ int main( int argc, char **argv)
 	QCommandLineOption benchmarkOption( QStringList() << "b" << "benchmark", "Run audio system benchmark" );
 	QCommandLineOption outputFileOption( QStringList() << "o" << "output-file", "If specified the output of the logger will not be directed to stdout but instead stored in a file (either plain file name or with relative of absolute path)",
 										 "Output File", "");
+	parser.addPositionalArgument( "test", "Run only this test or suite, e.g. MidiActionTest::testUndoAction", "[test]" );
 	parser.addHelpOption();
 	parser.addOption( verboseOption );
 	parser.addOption( appveyorOption );
@@ -181,7 +182,9 @@ int main( int argc, char **argv)
 		avtl.reset( new AppVeyorTestListener( *appveyorApiClient ));
 		runner.eventManager().addListener( avtl.get() );
 	}
-	bool wasSuccessful = runner.run( "", false );
+	const QStringList positional = parser.positionalArguments();
+	const std::string sTestName = positional.isEmpty() ? std::string() : positional.first().toStdString();
+	bool wasSuccessful = runner.run( sTestName, false );
 	auto stop = std::chrono::high_resolution_clock::now();
 
 	// Ensure the log is written properly

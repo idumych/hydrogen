@@ -66,6 +66,62 @@ void MidiActionTest::tearDown()
 	Preferences::get_instance()->getMidiEventMap()->reset();
 }
 
+void MidiActionTest::testEventMapPerInstrument()
+{
+	___INFOLOG( "" );
+
+	auto pMidiEventMap = Preferences::get_instance()->getMidiEventMap();
+	pMidiEventMap->reset();
+
+	auto pStrip0 = std::make_shared<MidiAction>( MidiAction::Type::StripVolumeAbsolute );
+	pStrip0->setInstrument( 0 );
+	auto pStrip1 = std::make_shared<MidiAction>( MidiAction::Type::StripVolumeAbsolute );
+	pStrip1->setInstrument( 1 );
+	const auto cc = Midi::parameterFromInt( 7 );
+
+	CPPUNIT_ASSERT( ! pStrip0->isEquivalentTo( pStrip1 ) );
+
+	pMidiEventMap->registerEvent( MidiEvent::Type::CC, cc, pStrip0, Event::Trigger::Suppress );
+	pMidiEventMap->registerEvent( MidiEvent::Type::CC, cc, pStrip1, Event::Trigger::Suppress );
+	CPPUNIT_ASSERT_EQUAL( static_cast<size_t>( 2 ), pMidiEventMap->getMidiEvents().size() );
+	CPPUNIT_ASSERT_EQUAL( static_cast<size_t>( 1 ), pMidiEventMap->getRegisteredMidiEvents( pStrip1 ).size() );
+	CPPUNIT_ASSERT_EQUAL( static_cast<size_t>( 2 ), pMidiEventMap->getCCActions( cc ).size() );
+
+	pMidiEventMap->removeRegisteredEvent( MidiEvent::Type::CC, cc, pStrip0 );
+	const auto remaining = pMidiEventMap->getMidiEvents();
+	CPPUNIT_ASSERT_EQUAL( static_cast<size_t>( 1 ), remaining.size() );
+	CPPUNIT_ASSERT_EQUAL( 1, remaining[ 0 ]->getMidiAction()->getInstrument() );
+
+	pMidiEventMap->reset();
+	___INFOLOG( "passed" );
+}
+
+void MidiActionTest::testEventMapRemoveAll()
+{
+	___INFOLOG( "" );
+
+	auto pMidiEventMap = Preferences::get_instance()->getMidiEventMap();
+	pMidiEventMap->reset();
+
+	// Equivalent actions bound to the same CC, as loaded from an older
+	// config: all of them go.
+	const auto cc = Midi::parameterFromInt( 10 );
+	auto pPlay = std::make_shared<MidiAction>( MidiAction::Type::Play );
+	auto pStop = std::make_shared<MidiAction>( MidiAction::Type::Stop );
+	pMidiEventMap->registerEvent( MidiEvent::Type::CC, cc, pPlay, Event::Trigger::Suppress );
+	pMidiEventMap->registerEvent( MidiEvent::Type::CC, Midi::parameterFromInt( 11 ), pPlay, Event::Trigger::Suppress );
+	pMidiEventMap->registerEvent( MidiEvent::Type::CC, cc, pStop, Event::Trigger::Suppress );
+	pMidiEventMap->registerEvent( MidiEvent::Type::Note, Midi::parameterFromInt( 36 ), pPlay, Event::Trigger::Suppress );
+
+	pMidiEventMap->removeRegisteredEvent( MidiEvent::Type::CC, cc, pPlay );
+	CPPUNIT_ASSERT_EQUAL( static_cast<size_t>( 3 ), pMidiEventMap->getMidiEvents().size() );
+	CPPUNIT_ASSERT_EQUAL( static_cast<size_t>( 2 ), pMidiEventMap->getRegisteredMidiEvents( pPlay ).size() );
+	CPPUNIT_ASSERT_EQUAL( static_cast<size_t>( 1 ), pMidiEventMap->getRegisteredMidiEvents( pStop ).size() );
+
+	pMidiEventMap->reset();
+	___INFOLOG( "passed" );
+}
+
 #ifndef Q_OS_MACX
 void MidiActionTest::testBeatCounterAction()
 {

@@ -803,6 +803,7 @@ bool MidiAction::isEquivalentTo( const std::shared_ptr<MidiAction> pOther
 	return (
 		m_type == pOther->m_type && m_nComponent == pOther->m_nComponent &&
 		m_fFactor == pOther->m_fFactor && m_nFx == pOther->m_nFx &&
+		m_nInstrument == pOther->m_nInstrument &&
 		m_nLayer == pOther->m_nLayer && m_nPattern == pOther->m_nPattern &&
 		m_nSong == pOther->m_nSong && m_nValue == pOther->m_nValue
 	);

@@ -454,7 +454,7 @@ void MidiEventMap::removeRegisteredEvent(
 				 ( *it )->getParameter() == parameter &&
 				 ( *it )->getMidiAction() != nullptr &&
 				 ( *it )->getMidiAction()->isEquivalentTo( pAction ) ) {
-				m_events.erase( it );
+				it = m_events.erase( it );
 				bModified = true;
 			}
 			else {
