@@ -108,6 +108,20 @@ Proposed differences from upstream (each can be vetoed):
    window instead of an inline field. The playback-track, timeline (tempo
    markers, tags) and automation strips aren't ported yet, so the ruler is
    25 px instead of upstream's 50 px header.
+14. **Rack:** tabs "Parameters", "Components", "Library" (upstream: "Param.",
+   "Comp." — the HIG asks for no abbreviations). The parameters sit in
+   labelled boxes with standard spinners and checkboxes instead of
+   upstream's drawn panel; knobs follow upstream's Rotary (44×26, 100 px of
+   drag is the whole range, wheel, arrow keys) but reset with a
+   double-click instead of Ctrl+click, and Shift drags finely (upstream:
+   Ctrl drags faster). The filter's on/off button is an "Active" checkbox.
+   Like upstream, parameter changes are not undoable; renaming is.
+15. **Library:** double-click loads a kit, opens a song (asking about
+   unsaved changes, which upstream doesn't) or adds a pattern, as well as
+   the context menu (upstream has no double-click). Items are grouped by
+   Session / Custom / User / System without upstream's sub-folder levels,
+   and there is no info pane, properties, duplicate, delete, import or
+   export yet. The Components tab (sample layers) is the next step.
 
 ## Not yet captured
 

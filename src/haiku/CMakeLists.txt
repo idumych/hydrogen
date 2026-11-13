@@ -28,12 +28,17 @@ add_dependencies(h2miditest hydrogen-core-${VERSION})
 add_executable(Hydrogen
     App.cpp
     Colors.cpp
+    Controls.cpp
+    InstrumentParameters.cpp
     MainWindow.cpp
+    NameWindow.cpp
     PatternActions.cpp
     PatternEditor.cpp
+    Rack.cpp
     Settings.cpp
     SongActions.cpp
     SongEditor.cpp
+    SoundLibrary.cpp
     TransportBar.cpp
     UndoStack.cpp
 )

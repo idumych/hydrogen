@@ -26,14 +26,12 @@
 #include <cmath>
 #include <vector>
 
-#include <Button.h>
 #include <Catalog.h>
 #include <LayoutBuilder.h>
 #include <MenuItem.h>
 #include <PopUpMenu.h>
 #include <ScrollBar.h>
 #include <Shape.h>
-#include <TextControl.h>
 #include <Window.h>
 
 #include <core/AudioEngine/AudioEngine.h>
@@ -47,6 +45,7 @@
 #include <core/Preferences/Preferences.h>
 
 #include "Colors.h"
+#include "NameWindow.h"
 #include "SongActions.h"
 #include "TransportBar.h"
 #include "UndoStack.h"
@@ -152,54 +151,6 @@ static void drawPlayheadLine( BView* pView, const SongEditorState& state, float 
 	pView->StrokeLine( BPoint( fX, fTop ), BPoint( fX, fBottom ) );
 	pView->SetPenSize( 1 );
 }
-
-// ---------------------------------------------------------------------------
-// RenameWindow: asks for a pattern's new name.
-
-class RenameWindow : public BWindow
-{
-public:
-	RenameWindow( BMessenger target, int nRow, const BString& sName, BRect parentFrame )
-		: BWindow( BRect( 0, 0, 300, 80 ), B_TRANSLATE( "Rename pattern" ), B_FLOATING_WINDOW_LOOK,
-				   B_FLOATING_APP_WINDOW_FEEL,
-				   B_NOT_ZOOMABLE | B_NOT_RESIZABLE | B_AUTO_UPDATE_SIZE_LIMITS | B_CLOSE_ON_ESCAPE )
-		, m_target( target ), m_nRow( nRow )
-	{
-		m_pName = new BTextControl( "name", B_TRANSLATE( "Name:" ), sName, nullptr );
-		BButton* pCancel = new BButton( "cancel", B_TRANSLATE( "Cancel" ), new BMessage( B_QUIT_REQUESTED ) );
-		BButton* pRename = new BButton( "rename", B_TRANSLATE( "Rename" ), new BMessage( kMsgDoRename ) );
-		BLayoutBuilder::Group<>( this, B_VERTICAL )
-			.SetInsets( B_USE_WINDOW_INSETS )
-			.Add( m_pName )
-			.AddGroup( B_HORIZONTAL )
-				.AddGlue()
-				.Add( pCancel )
-				.Add( pRename )
-			.End();
-		SetDefaultButton( pRename );
-		m_pName->MakeFocus( true );
-		m_pName->TextView()->SelectAll();
-		CenterIn( parentFrame );
-	}
-
-	void MessageReceived( BMessage* pMessage ) override
-	{
-		if ( pMessage->what == kMsgDoRename ) {
-			BMessage rename( kMsgDoRename );
-			rename.AddInt32( "row", m_nRow );
-			rename.AddString( "name", m_pName->Text() );
-			m_target.SendMessage( &rename );
-			Quit();
-			return;
-		}
-		BWindow::MessageReceived( pMessage );
-	}
-
-private:
-	BMessenger m_target;
-	int m_nRow;
-	BTextControl* m_pName;
-};
 
 // ---------------------------------------------------------------------------
 // PatternListView: pattern names with play indicators (upstream's
@@ -803,8 +754,11 @@ void SongEditor::renamePattern( int nRow )
 	if ( pPatterns == nullptr || nRow < 0 || nRow >= pPatterns->size() ) {
 		return;
 	}
-	( new RenameWindow( BMessenger( this ), nRow, toBString( pPatterns->get( nRow )->getName() ),
-						Window()->Frame() ) )->Show();
+	BMessage reply( kMsgDoRename );
+	reply.AddInt32( "row", nRow );
+	( new NameWindow( B_TRANSLATE( "Rename pattern" ), B_TRANSLATE( "Rename" ),
+					  toBString( pPatterns->get( nRow )->getName() ), BMessenger( this ), reply,
+					  Window()->Frame() ) )->Show();
 }
 
 void SongEditor::MessageReceived( BMessage* pMessage )

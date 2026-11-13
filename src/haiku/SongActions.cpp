@@ -24,12 +24,17 @@
 
 #include <Catalog.h>
 
+#include <core/Basics/Drumkit.h>
 #include <core/Basics/GridPoint.h>
+#include <core/Basics/Instrument.h>
+#include <core/Basics/InstrumentList.h>
 #include <core/Basics/Pattern.h>
 #include <core/Basics/PatternList.h>
 #include <core/Basics/Song.h>
 #include <core/CoreActionController.h>
+#include <core/Helpers/Filesystem.h>
 #include <core/Hydrogen.h>
+#include <core/SoundLibrary/SoundLibraryDatabase.h>
 
 #undef B_TRANSLATION_CONTEXT
 #define B_TRANSLATION_CONTEXT "SongActions"
@@ -232,6 +237,78 @@ std::unique_ptr<UndoCommand> clearSequence()
 		}
 	}
 	return pMacro->isEmpty() ? nullptr : std::move( pMacro );
+}
+
+class DrumkitCommand : public UndoCommand
+{
+public:
+	DrumkitCommand( std::shared_ptr<Drumkit> pNew, std::shared_ptr<Drumkit> pOld )
+		: UndoCommand( B_TRANSLATE( "load drumkit" ) ), m_pNew( pNew ), m_pOld( pOld ) {}
+
+	void redo() override { CoreActionController::setDrumkit( m_pNew ); }
+	void undo() override { CoreActionController::setDrumkit( m_pOld ); }
+
+private:
+	std::shared_ptr<Drumkit> m_pNew, m_pOld;
+};
+
+std::unique_ptr<UndoCommand> switchDrumkit( const BString& sPath )
+{
+	auto pHydrogen = Hydrogen::get_instance();
+	auto pSong = song();
+	if ( pSong == nullptr ) {
+		return nullptr;
+	}
+	auto pKit = pHydrogen->getSoundLibraryDatabase()->getDrumkit( QString::fromUtf8( sPath.String() ) );
+	if ( pKit == nullptr ) {
+		return nullptr;
+	}
+	// Like upstream: the song gets its own copy, in the song's context.
+	auto pCopy = std::make_shared<Drumkit>( pKit );
+	pCopy->setContext( Filesystem::Context::Song );
+	return std::make_unique<DrumkitCommand>( pCopy, pSong->getDrumkit() );
+}
+
+class InstrumentCommand : public UndoCommand
+{
+public:
+	InstrumentCommand( std::shared_ptr<Instrument> pNew, std::shared_ptr<Instrument> pOld )
+		: UndoCommand( B_TRANSLATE( "rename instrument" ) ), m_pNew( pNew ), m_pOld( pOld ) {}
+
+	void redo() override { CoreActionController::replaceInstrument( m_pNew, m_pOld ); }
+	void undo() override { CoreActionController::replaceInstrument( m_pOld, m_pNew ); }
+
+private:
+	std::shared_ptr<Instrument> m_pNew, m_pOld;
+};
+
+std::unique_ptr<UndoCommand> renameInstrument( int nInstrument, const BString& sName )
+{
+	auto pSong = song();
+	if ( pSong == nullptr || pSong->getDrumkit() == nullptr ) {
+		return nullptr;
+	}
+	auto pOld = pSong->getDrumkit()->getInstruments()->get( nInstrument );
+	if ( pOld == nullptr || pOld->getName() == QString::fromUtf8( sName.String() ) ) {
+		return nullptr;
+	}
+	auto pNew = std::make_shared<Instrument>( pOld );
+	pNew->setName( QString::fromUtf8( sName.String() ) );
+	return std::make_unique<InstrumentCommand>( pNew, pOld );
+}
+
+std::unique_ptr<UndoCommand> appendPattern( const BString& sPath )
+{
+	auto pSong = song();
+	if ( pSong == nullptr ) {
+		return nullptr;
+	}
+	auto pPattern = CoreActionController::loadPattern( QString::fromUtf8( sPath.String() ) );
+	if ( pPattern == nullptr ) {
+		return nullptr;
+	}
+	return std::make_unique<InsertCommand>( B_TRANSLATE( "add pattern" ),
+											pSong->getPatternList()->size(), pPattern );
 }
 
 };

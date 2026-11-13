@@ -59,6 +59,7 @@
 #include "Messages.h"
 #include "PatternActions.h"
 #include "PatternEditor.h"
+#include "Rack.h"
 #include "SongEditor.h"
 #include "Settings.h"
 #include "TransportBar.h"
@@ -71,6 +72,7 @@ using namespace H2Core;
 
 static const char* kFrameName = "main window frame";
 static const char* kSplitName = "main window split";
+static const char* kRackHiddenName = "rack hidden";
 
 static BString toBString( const QString& s )
 {
@@ -81,36 +83,6 @@ static QString toQString( const BString& s )
 {
 	return QString::fromUtf8( s.String() );
 }
-
-/** Stands in for an editor that hasn't been ported yet, at the size
- * upstream gives it. */
-class Placeholder : public BView
-{
-public:
-	Placeholder( const char* sName, const char* sLabel, BSize minSize )
-		: BView( sName, B_WILL_DRAW | B_FULL_UPDATE_ON_RESIZE )
-		, m_sLabel( sLabel )
-	{
-		SetViewUIColor( B_DOCUMENT_BACKGROUND_COLOR, B_DARKEN_1_TINT );
-		SetExplicitMinSize( minSize );
-	}
-
-	void Draw( BRect ) override
-	{
-		BRect bounds = Bounds();
-		SetHighUIColor( B_DOCUMENT_BACKGROUND_COLOR, B_DARKEN_3_TINT );
-		StrokeRect( bounds );
-		SetHighUIColor( B_DOCUMENT_TEXT_COLOR, B_LIGHTEN_1_TINT );
-		font_height fh;
-		GetFontHeight( &fh );
-		DrawString( m_sLabel,
-					BPoint( ( bounds.Width() - StringWidth( m_sLabel ) ) / 2,
-							( bounds.Height() + fh.ascent - fh.descent ) / 2 ) );
-	}
-
-private:
-	BString m_sLabel;
-};
 
 /** Shows folders and Hydrogen songs in the open panel. */
 class SongFilter : public BRefFilter
@@ -154,16 +126,17 @@ MainWindow::MainWindow()
 	// Sizes from REFERENCE.md: song editor ~290 px high, rack 300 px wide.
 	m_pSongEditor = new SongEditor();
 	m_pPatternEditor = new PatternEditor();
-	auto pRack = new Placeholder( "instrument rack", B_TRANSLATE( "Instrument rack" ),
-								  BSize( 300, 160 ) );
-	pRack->SetExplicitMaxSize( BSize( 300, B_SIZE_UNLIMITED ) );
+	m_pRack = new Rack();
+	if ( Settings::get().GetBool( kRackHiddenName, false ) ) {
+		m_pRack->Hide();
+	}
 
 	m_pSplitView = new BSplitView( B_VERTICAL, 0 );
 	BLayoutBuilder::Split<>( m_pSplitView )
 		.Add( m_pSongEditor, 0.4f )
 		.AddGroup( B_HORIZONTAL, 0, 0.6f )
 			.Add( m_pPatternEditor )
-			.Add( pRack )
+			.Add( m_pRack )
 		.End();
 	float fWeight;
 	for ( int32 i = 0; i < 2; i++ ) {
@@ -297,8 +270,8 @@ BMenu* MainWindow::buildViewMenu()
 								   new BMessage( kMsgShowDirector ), 'D', B_SHIFT_KEY ) );
 	pMenu->AddItem( new BMenuItem( B_TRANSLATE( "Mixer" ),
 								   new BMessage( kMsgShowMixer ), 'M', B_SHIFT_KEY ) );
-	pMenu->AddItem( new BMenuItem( B_TRANSLATE( "Rack" ),
-								   new BMessage( kMsgShowRack ), 'I' ) );
+	m_pRackItem = new BMenuItem( B_TRANSLATE( "Rack" ), new BMessage( kMsgShowRack ), 'I' );
+	pMenu->AddItem( m_pRackItem );
 	pMenu->AddItem( new BMenuItem( B_TRANSLATE( "Automation path" ),
 								   new BMessage( kMsgShowAutomation ), 'A', B_SHIFT_KEY ) );
 	pMenu->AddItem( new BMenuItem( B_TRANSLATE( "Playback track" ),
@@ -308,7 +281,8 @@ BMenu* MainWindow::buildViewMenu()
 								   new BMessage( kMsgFullScreen ), 'F', B_SHIFT_KEY ) );
 	for ( int32 i = 0; i < pMenu->CountItems(); i++ ) {
 		if ( pMenu->ItemAt( i )->Message() != nullptr &&
-			 pMenu->ItemAt( i )->Message()->what != kMsgFullScreen ) {
+			 pMenu->ItemAt( i )->Message()->what != kMsgFullScreen &&
+			 pMenu->ItemAt( i )->Message()->what != kMsgShowRack ) {
 			pMenu->ItemAt( i )->SetEnabled( false );
 		}
 	}
@@ -348,6 +322,7 @@ BMenu* MainWindow::buildHelpMenu()
 void MainWindow::MenusBeginning()
 {
 	updateRecentMenu();
+	m_pRackItem->SetMarked( ! m_pRack->IsHidden() );
 	updateUndoItems();
 }
 
@@ -415,6 +390,8 @@ void MainWindow::pollCore()
 	bool bTitle = false;
 	bool bEditors = false;
 	bool bSong = false;
+	bool bInstrument = false;
+	bool bLibrary = false;
 	while ( auto pEvent = pQueue->popEvent() ) {
 		switch ( pEvent->getType() ) {
 		case Event::Type::GridCellToggled:
@@ -425,6 +402,9 @@ void MainWindow::pollCore()
 		case Event::Type::Relocation:
 		case Event::Type::State:
 			bSong = true;
+			break;
+		case Event::Type::SoundLibraryChanged:
+			bLibrary = true;
 			break;
 		case Event::Type::DrumkitLoaded:
 		case Event::Type::DrumkitIsModified:
@@ -438,6 +418,7 @@ void MainWindow::pollCore()
 		case Event::Type::SongModeActivation:
 		case Event::Type::UpdatePreferences:
 			bEditors = true;
+			bInstrument = true;
 			break;
 		case Event::Type::UpdateSong:
 			// A different song: its edits can't be undone any more.
@@ -467,6 +448,12 @@ void MainWindow::pollCore()
 	}
 	if ( bEditors || bSong ) {
 		m_pSongEditor->refresh();
+	}
+	if ( bInstrument || bTitle ) {
+		m_pRack->refreshInstrument();
+	}
+	if ( bLibrary ) {
+		m_pRack->refreshLibrary();
 	}
 	m_pPatternEditor->updatePlayhead();
 	m_pSongEditor->updatePlayhead();
@@ -704,6 +691,16 @@ void MainWindow::MessageReceived( BMessage* pMessage )
 		m_pAfterSave = nullptr;
 		break;
 
+	case kMsgShowRack:
+		if ( m_pRack->IsHidden() ) {
+			m_pRack->Show();
+		}
+		else {
+			m_pRack->Hide();
+		}
+		Settings::get().RemoveName( kRackHiddenName );
+		Settings::get().AddBool( kRackHiddenName, m_pRack->IsHidden() );
+		break;
 	case kMsgFullScreen: {
 		static BRect sNormalFrame;
 		static bool sFullScreen = false;

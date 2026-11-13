@@ -45,6 +45,13 @@ namespace SongActions
 	std::unique_ptr<UndoCommand> renamePattern( int nRow, const BString& sName );
 	/** Removes every cell of the arrangement. */
 	std::unique_ptr<UndoCommand> clearSequence();
+	/** Switches the song to the drumkit at @a sPath (upstream's
+	 * SE_switchDrumkitAction). */
+	std::unique_ptr<UndoCommand> switchDrumkit( const BString& sPath );
+	/** Renames instrument @a nInstrument (SE_replaceInstrumentAction). */
+	std::unique_ptr<UndoCommand> renameInstrument( int nInstrument, const BString& sName );
+	/** Appends the pattern file at @a sPath to the song (SE_insertPatternAction). */
+	std::unique_ptr<UndoCommand> appendPattern( const BString& sPath );
 };
 
 #endif

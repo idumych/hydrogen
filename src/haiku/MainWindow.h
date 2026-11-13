@@ -32,6 +32,7 @@ class BMenuItem;
 class BMessageRunner;
 class BSplitView;
 class PatternEditor;
+class Rack;
 class SongEditor;
 class TransportBar;
 
@@ -80,6 +81,8 @@ private:
 	TransportBar* m_pTransportBar;
 	PatternEditor* m_pPatternEditor;
 	SongEditor* m_pSongEditor;
+	Rack* m_pRack;
+	BMenuItem* m_pRackItem;
 	BMenuItem* m_pSystemColorsItem;
 	BSplitView* m_pSplitView;
 	BMenu* m_pRecentMenu;
