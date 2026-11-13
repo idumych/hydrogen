@@ -141,6 +141,10 @@ static void fromHydrogenTheme( EditorColors& c )
 	c.stackedOffNext = fromQ( t.m_songEditor_stackedModeOffNextColor );
 	c.highlight = fromQ( t.m_highlightColor );
 	c.midLight = fromQ( t.m_midLightColor );
+	c.accent = fromQ( t.m_accentColor );
+	c.buttonRed = fromQ( t.m_buttonRedColor );
+	c.windowText = fromQ( t.m_windowTextColor );
+	c.waveForm = fromQ( t.m_waveFormColor );
 }
 
 static void fromSystem( EditorColors& c )
@@ -196,6 +200,10 @@ static void fromSystem( EditorColors& c )
 	c.stackedOffNext = make_color( 230, 90, 90, 255 );
 	c.highlight = ui_color( B_KEYBOARD_NAVIGATION_COLOR );
 	c.midLight = tint_color( panel, B_DARKEN_1_TINT );
+	c.accent = ui_color( B_CONTROL_HIGHLIGHT_COLOR );
+	c.buttonRed = make_color( 230, 100, 100, 255 );
+	c.windowText = text;
+	c.waveForm = mix( text, doc, 0.15f );
 }
 
 const EditorColors& get()

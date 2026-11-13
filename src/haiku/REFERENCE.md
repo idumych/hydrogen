@@ -121,7 +121,20 @@ Proposed differences from upstream (each can be vetoed):
    the context menu (upstream has no double-click). Items are grouped by
    Session / Custom / User / System without upstream's sub-folder levels,
    and there is no info pane, properties, duplicate, delete, import or
-   export yet. The Components tab (sample layers) is the next step.
+   export yet.
+16. **Components tab:** each component is a box with its header, the layer
+   preview (20 px numbered strip, 16 px rows, upstream's colours), a layer
+   toolbar, "Sample selection" (sentence case of upstream's "Sample Sel."
+   options), the waveform and the layer's pitch. Structural edits are
+   undoable as upstream's copy-and-replace actions; gains, mute, solo,
+   pitch and velocity-range drags apply directly. Samples are chosen in a
+   Haiku file panel showing only supported audio formats; adding several
+   at once spreads their velocity ranges evenly (upstream leaves that to
+   a checkbox in its file browser, which also offers renaming the
+   component or instrument after the file — not ported). Reordering
+   layers by dragging, dropping files onto the preview and the "Edit
+   layer" button (sample editor) aren't ported yet. Renaming a component
+   opens a small window instead of an inline field.
 
 ## Not yet captured
 

@@ -272,8 +272,9 @@ std::unique_ptr<UndoCommand> switchDrumkit( const BString& sPath )
 class InstrumentCommand : public UndoCommand
 {
 public:
-	InstrumentCommand( std::shared_ptr<Instrument> pNew, std::shared_ptr<Instrument> pOld )
-		: UndoCommand( B_TRANSLATE( "rename instrument" ) ), m_pNew( pNew ), m_pOld( pOld ) {}
+	InstrumentCommand( const char* sName, std::shared_ptr<Instrument> pNew,
+					   std::shared_ptr<Instrument> pOld )
+		: UndoCommand( sName ), m_pNew( pNew ), m_pOld( pOld ) {}
 
 	void redo() override { CoreActionController::replaceInstrument( m_pNew, m_pOld ); }
 	void undo() override { CoreActionController::replaceInstrument( m_pOld, m_pNew ); }
@@ -294,7 +295,37 @@ std::unique_ptr<UndoCommand> renameInstrument( int nInstrument, const BString& s
 	}
 	auto pNew = std::make_shared<Instrument>( pOld );
 	pNew->setName( QString::fromUtf8( sName.String() ) );
-	return std::make_unique<InstrumentCommand>( pNew, pOld );
+	return std::make_unique<InstrumentCommand>( B_TRANSLATE( "rename instrument" ), pNew, pOld );
+}
+
+std::unique_ptr<UndoCommand> replaceInstrument( std::shared_ptr<Instrument> pNew,
+												std::shared_ptr<Instrument> pOld, const char* sName )
+{
+	return std::make_unique<InstrumentCommand>( sName, pNew, pOld );
+}
+
+class ComponentNameCommand : public UndoCommand
+{
+public:
+	ComponentNameCommand( int nComponent, const QString& sOld, const QString& sNew )
+		: UndoCommand( B_TRANSLATE( "rename component" ) )
+		, m_nComponent( nComponent ), m_sOld( sOld ), m_sNew( sNew ) {}
+
+	void redo() override { CoreActionController::renameComponent( m_nComponent, m_sNew ); }
+	void undo() override { CoreActionController::renameComponent( m_nComponent, m_sOld ); }
+
+private:
+	int m_nComponent;
+	QString m_sOld, m_sNew;
+};
+
+std::unique_ptr<UndoCommand> renameComponent( int nComponent, const BString& sOld, const BString& sNew )
+{
+	if ( sOld == sNew ) {
+		return nullptr;
+	}
+	return std::make_unique<ComponentNameCommand>( nComponent, QString::fromUtf8( sOld.String() ),
+												   QString::fromUtf8( sNew.String() ) );
 }
 
 std::unique_ptr<UndoCommand> appendPattern( const BString& sPath )

@@ -95,4 +95,22 @@ private:
 	Formatter m_formatter;
 };
 
+/** Scrolls a layout-managed view vertically. BScrollView sizes its
+ * target to the visible area, which leaves nothing to scroll; this
+ * viewport keeps the content at its preferred height instead and sets
+ * the scroll bar's range. Put it in a BScrollView with a vertical bar. */
+class ScrollPane : public BView
+{
+public:
+	explicit ScrollPane( BView* pContent );
+
+	void FrameResized( float fWidth, float fHeight ) override;
+	void AllAttached() override;
+	/** Call after the content's layout changed size. */
+	void contentChanged();
+
+private:
+	BView* m_pContent;
+};
+
 #endif

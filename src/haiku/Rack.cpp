@@ -26,6 +26,8 @@
 #include <ScrollView.h>
 #include <StringView.h>
 
+#include "ComponentEditor.h"
+#include "Controls.h"
 #include "InstrumentParameters.h"
 #include "Settings.h"
 #include "SoundLibrary.h"
@@ -40,15 +42,14 @@ Rack::Rack()
 {
 	m_pParameters = new InstrumentParameters();
 	// The parameters can be taller than the rack: let them scroll.
-	BScrollView* pScroll = new BScrollView( B_TRANSLATE( "Parameters" ), m_pParameters, 0, false,
-											true, B_NO_BORDER );
+	BScrollView* pScroll = new BScrollView( B_TRANSLATE( "Parameters" ),
+											new ScrollPane( m_pParameters ), 0, false, true,
+											B_NO_BORDER );
 	AddTab( pScroll );
 
-	// The component (sample layer) editor is the next step of the port.
-	BStringView* pComponents = new BStringView( B_TRANSLATE( "Components" ),
-		B_TRANSLATE( "The component editor isn't ported yet." ) );
-	pComponents->SetAlignment( B_ALIGN_CENTER );
-	AddTab( pComponents );
+	m_pComponents = new ComponentEditor();
+	AddTab( new BScrollView( B_TRANSLATE( "Components" ), new ScrollPane( m_pComponents ), 0,
+							 false, true, B_NO_BORDER ) );
 
 	m_pLibrary = new SoundLibrary();
 	AddTab( m_pLibrary );
@@ -63,9 +64,30 @@ Rack::Rack()
 	}
 }
 
+/** The ScrollPane inside a tab's view, if it has one. */
+static ScrollPane* scrollPaneOf( BView* pView )
+{
+	if ( pView == nullptr ) {
+		return nullptr;
+	}
+	if ( auto pPane = dynamic_cast<ScrollPane*>( pView ) ) {
+		return pPane;
+	}
+	for ( int32 i = 0; i < pView->CountChildren(); i++ ) {
+		if ( auto pPane = scrollPaneOf( pView->ChildAt( i ) ) ) {
+			return pPane;
+		}
+	}
+	return nullptr;
+}
+
 void Rack::Select( int32 nIndex )
 {
 	BTabView::Select( nIndex );
+	// A hidden tab isn't resized: lay its content out now it shows.
+	if ( auto pPane = scrollPaneOf( ViewForTab( nIndex ) ) ) {
+		pPane->contentChanged();
+	}
 	// Like upstream, remember the last tab.
 	if ( Settings::get().ReplaceInt32( kTabName, nIndex ) != B_OK ) {
 		Settings::get().AddInt32( kTabName, nIndex );
@@ -75,6 +97,12 @@ void Rack::Select( int32 nIndex )
 void Rack::refreshInstrument()
 {
 	m_pParameters->refresh();
+	m_pComponents->refresh();
+}
+
+void Rack::rebuildComponents()
+{
+	m_pComponents->rebuild();
 }
 
 void Rack::refreshLibrary()

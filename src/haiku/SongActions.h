@@ -23,7 +23,13 @@
 #ifndef HAIKU_SONG_ACTIONS_H
 #define HAIKU_SONG_ACTIONS_H
 
+#include <memory>
+
 #include <String.h>
+
+namespace H2Core {
+	class Instrument;
+};
 
 #include "UndoStack.h"
 
@@ -50,6 +56,14 @@ namespace SongActions
 	std::unique_ptr<UndoCommand> switchDrumkit( const BString& sPath );
 	/** Renames instrument @a nInstrument (SE_replaceInstrumentAction). */
 	std::unique_ptr<UndoCommand> renameInstrument( int nInstrument, const BString& sName );
+	/** Replaces an instrument by an edited copy (upstream's
+	 * SE_replaceInstrumentAction): the component editor's structural edits. */
+	std::unique_ptr<UndoCommand> replaceInstrument( std::shared_ptr<H2Core::Instrument> pNew,
+													std::shared_ptr<H2Core::Instrument> pOld,
+													const char* sName );
+	/** Renames component @a nComponent of the selected instrument. */
+	std::unique_ptr<UndoCommand> renameComponent( int nComponent, const BString& sOld,
+												  const BString& sNew );
 	/** Appends the pattern file at @a sPath to the song (SE_insertPatternAction). */
 	std::unique_ptr<UndoCommand> appendPattern( const BString& sPath );
 };

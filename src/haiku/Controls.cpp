@@ -28,6 +28,7 @@
 #include <cstring>
 
 #include <Catalog.h>
+#include <ScrollBar.h>
 #include <TextView.h>
 #include <Window.h>
 
@@ -259,6 +260,45 @@ void Knob::MessageReceived( BMessage* pMessage )
 		return;
 	}
 	BControl::MessageReceived( pMessage );
+}
+
+// ---------------------------------------------------------------------------
+// ScrollPane
+
+ScrollPane::ScrollPane( BView* pContent )
+	: BView( pContent->Name(), B_FRAME_EVENTS )
+	, m_pContent( pContent )
+{
+	SetViewUIColor( B_PANEL_BACKGROUND_COLOR );
+	AddChild( m_pContent );
+	SetExplicitMinSize( BSize( pContent->MinSize().width, 50 ) );
+	SetExplicitPreferredSize( BSize( pContent->PreferredSize().width, 200 ) );
+}
+
+void ScrollPane::AllAttached()
+{
+	BView::AllAttached();
+	contentChanged();
+}
+
+void ScrollPane::FrameResized( float, float )
+{
+	contentChanged();
+}
+
+void ScrollPane::contentChanged()
+{
+	const BRect bounds = Bounds();
+	m_pContent->InvalidateLayout();
+	const float fHeight = std::max( bounds.Height(), m_pContent->PreferredSize().height );
+	m_pContent->MoveTo( 0, 0 );
+	m_pContent->ResizeTo( bounds.Width(), fHeight );
+	if ( BScrollBar* pBar = ScrollBar( B_VERTICAL ) ) {
+		const float fRange = std::max( 0.0f, fHeight - bounds.Height() );
+		pBar->SetRange( 0, fRange );
+		pBar->SetProportion( fHeight > 0 ? bounds.Height() / fHeight : 1 );
+		pBar->SetSteps( 20, std::max( 20.0f, bounds.Height() - 20 ) );
+	}
 }
 
 // ---------------------------------------------------------------------------

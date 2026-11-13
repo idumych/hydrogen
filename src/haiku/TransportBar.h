@@ -36,7 +36,7 @@ class GlyphButton : public BControl
 public:
 	enum class Glyph {
 		Rewind, Record, Play, Pause, Stop, Forward, Loop, SongMode, PatternMode,
-		Add, Clear, SinglePattern, StackedPatterns, Lock
+		Add, Clear, SinglePattern, StackedPatterns, Lock, Duplicate, Open
 	};
 
 	GlyphButton( const char* sName, Glyph glyph, BMessage* pMessage,

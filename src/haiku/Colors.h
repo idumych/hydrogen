@@ -53,6 +53,11 @@ struct EditorColors {
 	rgb_color stackedOn, stackedOnNext, stackedOffNext;
 	rgb_color highlight;		///< selected pattern's border, drop targets
 	rgb_color midLight;			///< ruler beyond the song's end
+	// Component editor
+	rgb_color accent;			///< layer bars, waveform background
+	rgb_color buttonRed;		///< layers without a sample, velocity gaps
+	rgb_color windowText;
+	rgb_color waveForm;
 };
 
 namespace Colors

@@ -391,6 +391,7 @@ void MainWindow::pollCore()
 	bool bEditors = false;
 	bool bSong = false;
 	bool bInstrument = false;
+	bool bComponents = false;
 	bool bLibrary = false;
 	while ( auto pEvent = pQueue->popEvent() ) {
 		switch ( pEvent->getType() ) {
@@ -405,6 +406,9 @@ void MainWindow::pollCore()
 			break;
 		case Event::Type::SoundLibraryChanged:
 			bLibrary = true;
+			break;
+		case Event::Type::InstrumentLayerChanged:
+			bComponents = true;
 			break;
 		case Event::Type::DrumkitLoaded:
 		case Event::Type::DrumkitIsModified:
@@ -449,7 +453,14 @@ void MainWindow::pollCore()
 	if ( bEditors || bSong ) {
 		m_pSongEditor->refresh();
 	}
-	if ( bInstrument || bTitle ) {
+	if ( bEditors || bTitle ) {
+		// Kit loaded, instrument selected or replaced, song changed.
+		bComponents = true;
+	}
+	if ( bComponents ) {
+		m_pRack->rebuildComponents();
+	}
+	if ( bInstrument || bTitle || bEditors ) {
 		m_pRack->refreshInstrument();
 	}
 	if ( bLibrary ) {

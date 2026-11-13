@@ -190,6 +190,16 @@ void GlyphButton::drawGlyph( BRect rect, rgb_color color )
 							   c.y + i * s * 0.65f + s * 0.25f ) );
 		}
 		break;
+	case Glyph::Duplicate:
+		StrokeRect( BRect( c.x - s, c.y - s, c.x + s * 0.4f, c.y + s * 0.4f ) );
+		FillRect( BRect( c.x - s * 0.4f, c.y - s * 0.4f, c.x + s, c.y + s ) );
+		break;
+	case Glyph::Open: {
+		// A folder.
+		FillRect( BRect( c.x - s, c.y - s * 0.75f, c.x - s * 0.1f, c.y - s * 0.4f ) );
+		StrokeRect( BRect( c.x - s, c.y - s * 0.45f, c.x + s, c.y + s * 0.8f ) );
+		break;
+	}
 	case Glyph::Lock:
 		FillRect( BRect( c.x - s * 0.8f, c.y - s * 0.1f, c.x + s * 0.8f, c.y + s ) );
 		SetPenSize( 2 );

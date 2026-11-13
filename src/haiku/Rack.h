@@ -25,6 +25,7 @@
 
 #include <TabView.h>
 
+class ComponentEditor;
 class InstrumentParameters;
 class SoundLibrary;
 
@@ -41,12 +42,15 @@ public:
 
 	/** The selected instrument or its parameters changed. */
 	void refreshInstrument();
+	/** Components or layers of the selected instrument changed. */
+	void rebuildComponents();
 	/** The sound library's database changed. */
 	void refreshLibrary();
 
 private:
 	InstrumentParameters* m_pParameters;
 	SoundLibrary* m_pLibrary;
+	ComponentEditor* m_pComponents;
 };
 
 #endif

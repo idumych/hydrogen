@@ -182,6 +182,10 @@ InstrumentParameters::InstrumentParameters()
 	m_pHihatMin->SetRange( 0, 127 );
 	m_pHihatMax = new FormattedSpinner( "hihat max", "–", new BMessage( kMsgHihatMax ), nullptr );
 	m_pHihatMax->SetRange( 0, 127 );
+	for ( FormattedSpinner* pSpinner : { m_pHihatGroup, m_pHihatMin, m_pHihatMax } ) {
+		pSpinner->SetExplicitMaxSize( BSize( pSpinner->StringWidth( pSpinner->Label() ) +
+			pSpinner->StringWidth( "000" ) + 70, B_SIZE_UNSET ) );
+	}
 
 	BGroupView* pEnvelope = new BGroupView( B_HORIZONTAL, 0 );
 	BLayoutBuilder::Group<>( pEnvelope )
