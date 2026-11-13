@@ -53,6 +53,7 @@ enum : uint32 {
 	kMsgShowAutomation = 'Hvau',
 	kMsgShowPlaybackTrack = 'Hvpt',
 	kMsgFullScreen = 'Hvfs',
+	kMsgSystemColors = 'Hvsc',
 
 	// Help
 	kMsgUserGuide = 'Hhug',
@@ -73,6 +74,7 @@ enum : uint32 {
 	// Internal
 	kMsgPollCore = 'Hpol',
 	kMsgSaveAndThen = 'Hsat',
+	kMsgPatternEdited = 'Hped',
 };
 
 #endif

@@ -89,6 +89,18 @@ Proposed differences from upstream (each can be vetoed):
    is part of the read-only package tree). The log goes to
    `~/config/var/log/Hydrogen.log`.
 8. **Remembered window frames** for the main window, mixer and other panels.
+9. **Canvas colours:** the editors (grids, rows, velocity lane) draw in
+   Hydrogen's colour theme from the core's preferences by default; "Use
+   system colors in editors" (View menu, later Settings) switches them to
+   colours derived from the Haiku system colours. Controls always use the
+   system look. Mute and solo stay red and yellow in both.
+10. **Pattern editor header:** standard Haiku controls with labels ("Size:",
+   "Grid:") instead of upstream's unlabelled LCD spin boxes. Until the song
+   editor is ported, the pattern name is a menu that picks the pattern.
+11. **Zoom** with Command+wheel over the grid (HIG), in steps of ×2.
+12. **Velocity:** drag across the bars with the primary button (upstream
+   draws with the secondary button in its select mode; on Haiku the
+   secondary button is for context menus).
 
 ## Not yet captured
 

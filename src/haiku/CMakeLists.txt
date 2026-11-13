@@ -27,9 +27,13 @@ add_dependencies(h2miditest hydrogen-core-${VERSION})
 
 add_executable(Hydrogen
     App.cpp
+    Colors.cpp
     MainWindow.cpp
+    PatternActions.cpp
+    PatternEditor.cpp
     Settings.cpp
     TransportBar.cpp
+    UndoStack.cpp
 )
 set_property(TARGET Hydrogen PROPERTY CXX_STANDARD 17)
 target_link_libraries(Hydrogen

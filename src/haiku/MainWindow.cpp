@@ -55,9 +55,13 @@
 #include <core/IO/NullDriver.h>
 #include <core/Preferences/Preferences.h>
 
+#include "Colors.h"
 #include "Messages.h"
+#include "PatternActions.h"
+#include "PatternEditor.h"
 #include "Settings.h"
 #include "TransportBar.h"
+#include "UndoStack.h"
 
 #undef B_TRANSLATION_CONTEXT
 #define B_TRANSLATION_CONTEXT "MainWindow"
@@ -149,8 +153,7 @@ MainWindow::MainWindow()
 	// Sizes from REFERENCE.md: song editor ~290 px high, rack 300 px wide.
 	auto pSongEditor = new Placeholder( "song editor", B_TRANSLATE( "Song editor" ),
 										BSize( 400, 120 ) );
-	auto pPatternEditor = new Placeholder( "pattern editor", B_TRANSLATE( "Pattern editor" ),
-										   BSize( 400, 160 ) );
+	m_pPatternEditor = new PatternEditor();
 	auto pRack = new Placeholder( "instrument rack", B_TRANSLATE( "Instrument rack" ),
 								  BSize( 300, 160 ) );
 	pRack->SetExplicitMaxSize( BSize( 300, B_SIZE_UNLIMITED ) );
@@ -159,7 +162,7 @@ MainWindow::MainWindow()
 	BLayoutBuilder::Split<>( m_pSplitView )
 		.Add( pSongEditor, 0.4f )
 		.AddGroup( B_HORIZONTAL, 0, 0.6f )
-			.Add( pPatternEditor )
+			.Add( m_pPatternEditor )
 			.Add( pRack )
 		.End();
 	float fWeight;
@@ -180,6 +183,8 @@ MainWindow::MainWindow()
 
 	updateTitle();
 	updateRecentMenu();
+	updateUndoItems();
+	PatternActions::setObserver( BMessenger( this ) );
 
 	BMessage poll( kMsgPollCore );
 	m_pPollRunner = new BMessageRunner( BMessenger( this ), &poll, 50000 );
@@ -244,9 +249,7 @@ BMenu* MainWindow::buildEditMenu()
 	pMenu->AddSeparatorItem();
 	pMenu->AddItem( new BMenuItem( B_TRANSLATE( "Undo history" ),
 								   new BMessage( kMsgUndoHistory ) ) );
-	// The undo stack lives in the GUI upstream and hasn't been ported yet.
-	m_pUndoItem->SetEnabled( false );
-	m_pRedoItem->SetEnabled( false );
+	// Not ported yet.
 	pMenu->FindItem( kMsgUndoHistory )->SetEnabled( false );
 	return pMenu;
 }
@@ -309,6 +312,13 @@ BMenu* MainWindow::buildViewMenu()
 			pMenu->ItemAt( i )->SetEnabled( false );
 		}
 	}
+	// Editors in Hydrogen's colour theme (default) or the system colours.
+	// Moves to the Settings window once that is ported.
+	pMenu->AddSeparatorItem();
+	m_pSystemColorsItem = new BMenuItem( B_TRANSLATE( "Use system colors in editors" ),
+										 new BMessage( kMsgSystemColors ) );
+	m_pSystemColorsItem->SetMarked( Colors::source() == Colors::Source::System );
+	pMenu->AddItem( m_pSystemColorsItem );
 	return pMenu;
 }
 
@@ -338,6 +348,25 @@ BMenu* MainWindow::buildHelpMenu()
 void MainWindow::MenusBeginning()
 {
 	updateRecentMenu();
+	updateUndoItems();
+}
+
+void MainWindow::updateUndoItems()
+{
+	// "Undo add note", as the HIG suggests, or plain "Undo" when empty.
+	const UndoStack& stack = UndoStack::get();
+	BString sUndo( B_TRANSLATE( "Undo" ) );
+	if ( stack.canUndo() ) {
+		sUndo << " " << stack.undoName();
+	}
+	BString sRedo( B_TRANSLATE( "Redo" ) );
+	if ( stack.canRedo() ) {
+		sRedo << " " << stack.redoName();
+	}
+	m_pUndoItem->SetLabel( sUndo );
+	m_pUndoItem->SetEnabled( stack.canUndo() );
+	m_pRedoItem->SetLabel( sRedo );
+	m_pRedoItem->SetEnabled( stack.canRedo() );
 }
 
 void MainWindow::updateRecentMenu()
@@ -384,9 +413,31 @@ void MainWindow::pollCore()
 		return;
 	}
 	bool bTitle = false;
+	bool bEditors = false;
 	while ( auto pEvent = pQueue->popEvent() ) {
 		switch ( pEvent->getType() ) {
+		case Event::Type::DrumkitLoaded:
+		case Event::Type::DrumkitIsModified:
+		case Event::Type::InstrumentMuteSoloChanged:
+		case Event::Type::InstrumentParametersChanged:
+		case Event::Type::PatternChanged:
+		case Event::Type::PatternEditorLocked:
+		case Event::Type::PatternIsModified:
+		case Event::Type::SelectedInstrumentChanged:
+		case Event::Type::SelectedPatternChanged:
+		case Event::Type::SongModeActivation:
+		case Event::Type::UpdatePreferences:
+			bEditors = true;
+			break;
 		case Event::Type::UpdateSong:
+			// A different song: its edits can't be undone any more.
+			if ( pEvent->getValue() == 0 ) {
+				UndoStack::get().clear();
+				updateUndoItems();
+			}
+			bTitle = true;
+			bEditors = true;
+			break;
 		case Event::Type::SongIsModified:
 			bTitle = true;
 			break;
@@ -401,6 +452,10 @@ void MainWindow::pollCore()
 	if ( bTitle ) {
 		updateTitle();
 	}
+	if ( bEditors ) {
+		m_pPatternEditor->refresh();
+	}
+	m_pPatternEditor->updatePlayhead();
 	m_pTransportBar->update();
 }
 
@@ -483,6 +538,26 @@ void MainWindow::MessageReceived( BMessage* pMessage )
 	case kMsgPollCore:
 		pollCore();
 		break;
+	case kMsgUndo:
+		UndoStack::get().undo();
+		updateUndoItems();
+		break;
+	case kMsgRedo:
+		UndoStack::get().redo();
+		updateUndoItems();
+		break;
+	case kMsgPatternEdited:
+		m_pPatternEditor->redrawNotes();
+		updateUndoItems();
+		break;
+	case kMsgSystemColors: {
+		const bool bSystem = ! m_pSystemColorsItem->IsMarked();
+		m_pSystemColorsItem->SetMarked( bSystem );
+		Colors::setSource( bSystem ? Colors::Source::System : Colors::Source::Hydrogen );
+		Settings::save();
+		m_pPatternEditor->refresh();
+		break;
+	}
 
 	case kMsgPlay:
 	case kMsgStop:

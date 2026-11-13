@@ -31,6 +31,7 @@ class BMenu;
 class BMenuItem;
 class BMessageRunner;
 class BSplitView;
+class PatternEditor;
 class TransportBar;
 
 /** The main window: menu bar, transport bar, song editor above the
@@ -62,6 +63,7 @@ private:
 	void pollCore();
 	void updateTitle();
 	void updateRecentMenu();
+	void updateUndoItems();
 
 	/** Asks whether to save unsaved changes. Returns true if the caller
 	 * may go on; if the user chose to save and a file panel had to be
@@ -75,6 +77,8 @@ private:
 	void transport( uint32 what );
 
 	TransportBar* m_pTransportBar;
+	PatternEditor* m_pPatternEditor;
+	BMenuItem* m_pSystemColorsItem;
 	BSplitView* m_pSplitView;
 	BMenu* m_pRecentMenu;
 	BMenuItem* m_pUndoItem;
