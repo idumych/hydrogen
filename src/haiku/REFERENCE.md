@@ -142,7 +142,7 @@ Proposed differences from upstream (each can be vetoed):
    bug — it uses the fader's width), double-click sets a fader to unity
    (1.0) instead of Ctrl+click setting the 1.5 maximum. Each effect
    slot's "Edit…" opens its effect window (item 23). The mixer settings
-   dialog (pan law) and MIDI learn aren't ported yet. On
+   dialog (pan law) isn't ported yet; MIDI learn is item 26. On
    Haiku, LADSPA_PATH defaults to the system and user lib/ladspa folders.
 18. **Settings window** (File > Settings…, Alt+,; upstream's Preferences
    dialog): tabs General, Audio, MIDI, Appearance. Settings apply as they
@@ -243,6 +243,29 @@ Proposed differences from upstream (each can be vetoed):
    (removes the untitled autosave), as upstream. Differences: a saved
    song's autosave is removed (upstream left it behind, merely older),
    and playlists aren't autosaved (the playlist editor isn't ported).
+
+26. **MIDI learn** (upstream's MidiLearnable / MidiSenseWidget and MIDI
+   action table). Shift-click a learnable control to open "Bind MIDI
+   event" (a floating window: the action, its bindings, "Waiting for MIDI
+   input…" naming the action channel if one is set, Clear bindings,
+   Cancel); the next incoming note, CC, program change or MMC message is
+   bound, as one undoable step. Tooltips of learnable controls add
+   "MIDI: <ACTION>" and a "Bound to …" line per binding, or "Not bound
+   (Shift-click to bind)". Learnable, with upstream's actions: mixer
+   strip mute, solo, pan, FX sends, volume (STRIP_* / PAN_ABSOLUTE /
+   EFFECT_LEVEL_ABSOLUTE with the strip index); master mute, volume,
+   humanize velocity and timing, swing; transport previous bar, record,
+   play/pause, stop, next bar. Settings > MIDI actions lists every
+   binding: Learn (takes the next event for that row), event, number
+   (note/CC), action, its parameters (instrument with "Selected", FX,
+   component, layer, pattern, song, factor), Remove, and "Add binding";
+   rows only become bindings once complete; edits are undoable and the
+   tab resyncs when the window is activated. Differences: a Cancel
+   button; TIMING_CLOCK_TICK isn't offered (driven by the clock). Fixed
+   in the core (with tests): bindings of different strips were treated
+   as duplicates (MidiAction::isEquivalentTo ignored the instrument) and
+   removing one removed all; removal used an erased iterator. Testing
+   tool: h2midisend cc|note|pc NUMBER [VALUE] [CHANNEL].
 
 ## Not yet captured
 

@@ -56,6 +56,7 @@
 
 #include "Colors.h"
 #include "Controls.h"
+#include "MidiActionTable.h"
 #include "Settings.h"
 
 #undef B_TRANSLATION_CONTEXT
@@ -173,6 +174,8 @@ SettingsWindow::SettingsWindow()
 	pTabs->AddTab( buildGeneral() );
 	pTabs->AddTab( buildAudio() );
 	pTabs->AddTab( buildMidi() );
+	m_pMidiActions = new MidiActionTable();
+	pTabs->AddTab( m_pMidiActions );
 	pTabs->AddTab( buildAppearance() );
 
 	m_pRevert = new BButton( "revert", B_TRANSLATE( "Revert" ), new BMessage( kMsgRevert ) );
@@ -740,6 +743,8 @@ void SettingsWindow::WindowActivated( bool bActive )
 		updateMidiPorts();
 		updateAudioStatus();
 		m_bLoading = false;
+		// Bindings learned or undone meanwhile.
+		m_pMidiActions->sync();
 	}
 }
 

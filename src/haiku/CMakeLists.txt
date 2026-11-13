@@ -25,6 +25,9 @@ target_link_libraries(h2miditest
 )
 add_dependencies(h2miditest hydrogen-core-${VERSION})
 
+add_executable(h2midisend tools/h2midisend.cpp)
+target_link_libraries(h2midisend ${MIDIKIT_LIBRARIES} be)
+
 add_executable(Hydrogen
     App.cpp
     Autosave.cpp
@@ -37,6 +40,8 @@ add_executable(Hydrogen
     InstrumentParameters.cpp
     LicenseField.cpp
     MainWindow.cpp
+    MidiActionTable.cpp
+    MidiLearn.cpp
     Mixer.cpp
     NameWindow.cpp
     PatternActions.cpp

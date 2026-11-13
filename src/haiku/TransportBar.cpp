@@ -213,9 +213,15 @@ void GlyphButton::drawGlyph( BRect rect, rgb_color color )
 	}
 }
 
+bool GlyphButton::GetToolTipAt( BPoint where, BToolTip** pTip )
+{
+	updateMidiToolTip( this );
+	return BControl::GetToolTipAt( where, pTip );
+}
+
 void GlyphButton::MouseDown( BPoint )
 {
-	if ( ! IsEnabled() ) {
+	if ( ! IsEnabled() || learnClick( this ) ) {
 		return;
 	}
 	m_bTracking = true;
@@ -300,6 +306,12 @@ TransportBar::TransportBar()
 	m_pLoopButton = new GlyphButton( "loop", GlyphButton::Glyph::Loop,
 									 new BMessage( kMsgLoop ), true );
 	m_pLoopButton->SetToolTip( B_TRANSLATE( "Loop song" ) );
+	// Upstream's MainToolBar actions; looping has none.
+	m_pRewindButton->setMidiAction( std::make_shared<MidiAction>( MidiAction::Type::PreviousBar ) );
+	m_pRecordButton->setMidiAction( std::make_shared<MidiAction>( MidiAction::Type::RecordReady ) );
+	m_pPlayButton->setMidiAction( std::make_shared<MidiAction>( MidiAction::Type::PlayPauseToggle ) );
+	m_pStopButton->setMidiAction( std::make_shared<MidiAction>( MidiAction::Type::Stop ) );
+	m_pForwardButton->setMidiAction( std::make_shared<MidiAction>( MidiAction::Type::NextBar ) );
 
 	m_pBpmSpinner = new BDecimalSpinner( "bpm", B_TRANSLATE( "BPM:" ),
 										 new BMessage( kMsgBpmChanged ) );

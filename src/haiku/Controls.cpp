@@ -192,9 +192,15 @@ void Knob::Draw( BRect )
 	SetDrawingMode( B_OP_COPY );
 }
 
+bool Knob::GetToolTipAt( BPoint where, BToolTip** pTip )
+{
+	updateMidiToolTip( this );
+	return BControl::GetToolTipAt( where, pTip );
+}
+
 void Knob::MouseDown( BPoint )
 {
-	if ( ! IsEnabled() ) {
+	if ( ! IsEnabled() || learnClick( this ) ) {
 		return;
 	}
 	MakeFocus( true );

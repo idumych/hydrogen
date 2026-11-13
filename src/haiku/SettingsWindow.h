@@ -34,6 +34,7 @@ class BSpinner;
 class BStringView;
 class BTextControl;
 class FormattedSpinner;
+class MidiActionTable;
 struct SettingsValues;
 
 /** The Settings window (upstream's PreferencesDialog plus the options of
@@ -100,6 +101,8 @@ private:
 	BMenuField* m_pFalloff;
 	BMenuField* m_pColoring;
 	BSpinner* m_pPatternColors;
+
+	MidiActionTable* m_pMidiActions;
 
 	BButton* m_pRevert;
 	BButton* m_pDefaults;

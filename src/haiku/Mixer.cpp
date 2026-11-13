@@ -139,7 +139,7 @@ static void drawReadout( BView* pView, BRect rect, const PeakReadout& readout )
 // ---------------------------------------------------------------------------
 // TagButton: the canvas-style M / S / BYP / FX / Peak toggles.
 
-class TagButton : public BControl
+class TagButton : public BControl, public MidiLearnable
 {
 public:
 	TagButton( const char* sLabel, BMessage* pMessage, rgb_color on, rgb_color onText, BSize size )
@@ -172,9 +172,15 @@ public:
 									 ( r.Height() + fh.ascent - fh.descent ) / 2 + 1 ) );
 	}
 
+	bool GetToolTipAt( BPoint where, BToolTip** pTip ) override
+	{
+		updateMidiToolTip( this );
+		return BControl::GetToolTipAt( where, pTip );
+	}
+
 	void MouseDown( BPoint ) override
 	{
-		if ( IsEnabled() ) {
+		if ( IsEnabled() && ! learnClick( this ) ) {
 			SetValue( Value() == B_CONTROL_ON ? B_CONTROL_OFF : B_CONTROL_ON );
 			Invoke();
 		}
@@ -187,7 +193,7 @@ private:
 // ---------------------------------------------------------------------------
 // FaderView: upstream's linear 0..1.5 fader with an L/R peak meter.
 
-class FaderView : public BControl
+class FaderView : public BControl, public MidiLearnable
 {
 public:
 	FaderView( const char* sName, BMessage* pMessage, BSize size, bool bMaster )
@@ -270,8 +276,17 @@ public:
 		StrokeLine( BPoint( knob.left + 3, fMid ), BPoint( knob.right - 3, fMid ) );
 	}
 
+	bool GetToolTipAt( BPoint where, BToolTip** pTip ) override
+	{
+		updateMidiToolTip( this );
+		return BControl::GetToolTipAt( where, pTip );
+	}
+
 	void MouseDown( BPoint where ) override
 	{
+		if ( learnClick( this ) ) {
+			return;
+		}
 		MakeFocus( true );
 		int32 nClicks = 1;
 		if ( Window()->CurrentMessage() != nullptr ) {
@@ -388,6 +403,22 @@ public:
 		m_pFader = new FaderView( "volume", message( kMsgVolume ), BSize( 22, 116 ), false );
 		m_pFader->SetToolTip( B_TRANSLATE( "Volume" ) );
 		place( m_pFader, 27, 132 );
+
+		// Upstream's MixerLine::updateActions(): the strip's index.
+		auto action = [nStrip]( MidiAction::Type type ) {
+			auto pAction = std::make_shared<MidiAction>( type );
+			pAction->setInstrument( nStrip );
+			return pAction;
+		};
+		m_pMute->setMidiAction( action( MidiAction::Type::StripMuteToggle ) );
+		m_pSolo->setMidiAction( action( MidiAction::Type::StripSoloToggle ) );
+		m_pPan->setMidiAction( action( MidiAction::Type::PanAbsolute ) );
+		for ( int i = 0; i < MAX_FX; i++ ) {
+			auto pSend = action( MidiAction::Type::EffectLevelAbsolute );
+			pSend->setFx( i );
+			m_pSends[ i ]->setMidiAction( pSend );
+		}
+		m_pFader->setMidiAction( action( MidiAction::Type::StripVolumeAbsolute ) );
 	}
 
 	void AttachedToWindow() override
@@ -666,6 +697,13 @@ public:
 									  c.windowText, BSize( 52, 15 ) );
 		m_pShowPeaks->SetToolTip( B_TRANSLATE( "Show instrument peaks" ) );
 		place( m_pShowPeaks, 66, 249 );
+
+		// Upstream's MasterLine.
+		m_pMute->setMidiAction( std::make_shared<MidiAction>( MidiAction::Type::MuteToggle ) );
+		m_pFader->setMidiAction( std::make_shared<MidiAction>( MidiAction::Type::MasterVolumeAbsolute ) );
+		m_pVelocity->setMidiAction( std::make_shared<MidiAction>( MidiAction::Type::HumanizationVelocityAbsolute ) );
+		m_pTime->setMidiAction( std::make_shared<MidiAction>( MidiAction::Type::HumanizationTimingAbsolute ) );
+		m_pSwing->setMidiAction( std::make_shared<MidiAction>( MidiAction::Type::HumanizationSwingAbsolute ) );
 	}
 
 	void AttachedToWindow() override

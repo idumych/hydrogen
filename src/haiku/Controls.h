@@ -28,6 +28,8 @@
 #include <Control.h>
 #include <String.h>
 
+#include "MidiLearn.h"
+
 #if __has_include(<Spinner.h>)
 #	include <Spinner.h>
 #else
@@ -39,7 +41,7 @@
  * resets it to its default. "Center" knobs (pitch coarse/fine) are
  * drawn from the middle with − and + at their ends. Sends its message
  * while it changes; value() is the float value. */
-class Knob : public BControl
+class Knob : public BControl, public MidiLearnable
 {
 public:
 	/** Small: upstream's 18×18 knob for FX sends, without end labels. */
@@ -57,6 +59,7 @@ public:
 	void MouseMoved( BPoint where, uint32 transit, const BMessage* pDrag ) override;
 	void MouseUp( BPoint where ) override;
 	void KeyDown( const char* pBytes, int32 nBytes ) override;
+	bool GetToolTipAt( BPoint where, BToolTip** pTip ) override;
 	void MessageReceived( BMessage* pMessage ) override;
 	BSize MinSize() override;
 	BSize MaxSize() override;

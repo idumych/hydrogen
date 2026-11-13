@@ -27,11 +27,13 @@
 #include <View.h>
 
 class BDecimalSpinner;
+#include "MidiLearn.h"
+
 class BStringView;
 
 /** A toolbar button that draws its own glyph on the system control
  * look. Toggle buttons stay pressed while their value is on. */
-class GlyphButton : public BControl
+class GlyphButton : public BControl, public MidiLearnable
 {
 public:
 	enum class Glyph {
@@ -47,6 +49,7 @@ public:
 	void MouseUp( BPoint where ) override;
 	void MouseMoved( BPoint where, uint32 transit, const BMessage* pDrag ) override;
 	void KeyDown( const char* pBytes, int32 nBytes ) override;
+	bool GetToolTipAt( BPoint where, BToolTip** pTip ) override;
 	BSize MinSize() override;
 	BSize MaxSize() override;
 

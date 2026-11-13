@@ -70,6 +70,7 @@
 #include "DrumkitWindow.h"
 #include "ExportWindows.h"
 #include "Messages.h"
+#include "MidiLearn.h"
 #include "Mixer.h"
 #include "PatternActions.h"
 #include "PatternEditor.h"
@@ -197,6 +198,7 @@ MainWindow::MainWindow()
 		m_pMixer->Unlock();
 	}
 
+	MidiLearn::setUndoTarget( BMessenger( this ) );
 	BMessage poll( kMsgPollCore );
 	m_pPollRunner = new BMessageRunner( BMessenger( this ), &poll, 50000 );
 }
