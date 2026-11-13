@@ -65,6 +65,7 @@
 #include <core/Preferences/Preferences.h>
 #include <core/SoundLibrary/SoundLibraryDatabase.h>
 
+#include "Autosave.h"
 #include "Colors.h"
 #include "DrumkitWindow.h"
 #include "ExportWindows.h"
@@ -205,6 +206,7 @@ MainWindow::~MainWindow()
 	delete m_pPollRunner;
 	delete m_pOpenPanel;
 	delete m_pSavePanel;
+	delete m_pAutosaveRunner;
 	delete m_pKitExportPanel;
 	delete m_pKitImportPanel;
 	delete m_pAfterSave;
@@ -323,6 +325,49 @@ BMenu* MainWindow::buildDrumkitMenu()
 	pOnline->SetEnabled( false );
 	pMenu->AddItem( pOnline );
 	return pMenu;
+}
+
+void MainWindow::startAutosave()
+{
+	// Upstream's limit: at most once a second.
+	const int nPerHour = std::min( Preferences::get_instance()->m_nAutosavesPerHour, 360 );
+	if ( nPerHour == m_nAutosavesPerHour ) {
+		return;
+	}
+	m_nAutosavesPerHour = nPerHour;
+	delete m_pAutosaveRunner;
+	m_pAutosaveRunner = nullptr;
+	if ( nPerHour > 0 ) {
+		BMessage message( kMsgAutosave );
+		m_pAutosaveRunner = new BMessageRunner( BMessenger( this ), &message,
+												static_cast<bigtime_t>( 3600000000LL / nPerHour ) );
+	}
+}
+
+void MainWindow::autosave()
+{
+	auto pHydrogen = Hydrogen::get_instance();
+	auto pSong = pHydrogen->getSong();
+	if ( pSong == nullptr || ! pSong->getIsModified() ) {
+		return;
+	}
+	// Upstream's onAutoSaveTimer(): save a copy beside the song, keep the
+	// song's own path and modified state.
+	const QString sPath = pSong->getPath();
+	const QString sAutosave = Filesystem::getAutoSavePath(
+		Filesystem::Artifact::Song,
+		sPath.isEmpty() ? Filesystem::emptyPath( Filesystem::Artifact::Song ) : sPath );
+	if ( sAutosave.isEmpty() ) {
+		return;
+	}
+	// Renamed by Save as meanwhile: the old autosave is stale.
+	if ( sAutosave != m_sLastAutosave && ! m_sLastAutosave.isEmpty() ) {
+		QFile::remove( m_sLastAutosave );
+	}
+	m_sLastAutosave = sAutosave;
+	pSong->save( sAutosave, true, true );
+	pSong->setPath( sPath );
+	pHydrogen->setSongModified( true );
 }
 
 void MainWindow::updateDrumkitMenu()
@@ -741,6 +786,8 @@ void MainWindow::pollCore()
 	m_pPatternEditor->updatePlayhead();
 	m_pSongEditor->updatePlayhead();
 	m_pTransportBar->update();
+	// Cheap when unchanged; follows the settings window.
+	startAutosave();
 }
 
 void MainWindow::transport( uint32 what )
@@ -821,6 +868,9 @@ void MainWindow::MessageReceived( BMessage* pMessage )
 	switch ( pMessage->what ) {
 	case kMsgPollCore:
 		pollCore();
+		break;
+	case kMsgAutosave:
+		autosave();
 		break;
 	case kMsgUndo:
 		UndoStack::get().undo();
@@ -1084,6 +1134,8 @@ void MainWindow::MessageReceived( BMessage* pMessage )
 		}
 		BPath path( &dir );
 		path.Append( sName );
+		const auto pBefore = Hydrogen::get_instance()->getSong();
+		const QString sOldPath = pBefore != nullptr ? pBefore->getPath() : QString();
 		if ( ! CoreActionController::saveSongAs( toQString( path.Path() ), false ) ) {
 			BAlert* pAlert = new BAlert( B_TRANSLATE( "Save" ),
 				B_TRANSLATE( "Hydrogen couldn't save the song." ), B_TRANSLATE( "OK" ),
@@ -1093,6 +1145,14 @@ void MainWindow::MessageReceived( BMessage* pMessage )
 			m_pAfterSave = nullptr;
 			break;
 		}
+		// The autosave of the untitled song would otherwise come back
+		// with the next new song (upstream removes it too); the new file's
+		// own is obsolete now.
+		if ( sOldPath.isEmpty() || sOldPath == Filesystem::emptyPath( Filesystem::Artifact::Song ) ) {
+			Autosave::remove( Filesystem::emptyPath( Filesystem::Artifact::Song ) );
+		}
+		Autosave::remove( toQString( path.Path() ) );
+		m_sLastAutosave = QString();
 		BPath parent;
 		path.GetParent( &parent );
 		Preferences::get_instance()->setLastSaveSongAsDirectory( toQString( parent.Path() ) );
@@ -1180,7 +1240,9 @@ void MainWindow::openSong( const BString& sPath )
 
 void MainWindow::doOpenSong( const BString& sPath )
 {
-	auto pSong = CoreActionController::loadSong( toQString( sPath ) );
+	const QString sSongPath = QFileInfo( toQString( sPath ) ).absoluteFilePath();
+	const QString sRecover = Autosave::offerRecovery( sSongPath );
+	auto pSong = CoreActionController::loadSong( sSongPath, sRecover );
 	if ( pSong == nullptr || ! CoreActionController::setSong( pSong ) ) {
 		BString sText( B_TRANSLATE( "Hydrogen couldn't open the song \"%path%\"." ) );
 		sText.ReplaceFirst( "%path%", sPath );
@@ -1189,6 +1251,11 @@ void MainWindow::doOpenSong( const BString& sPath )
 		pAlert->Go( nullptr );
 		return;
 	}
+	if ( ! sRecover.isEmpty() ) {
+		Hydrogen::get_instance()->setSongModified( true );
+	}
+	// Don't remove the previous song's autosave: it's that song's.
+	m_sLastAutosave = QString();
 	BPath parent;
 	BPath( sPath ).GetParent( &parent );
 	Preferences::get_instance()->setLastOpenSongDirectory( toQString( parent.Path() ) );
@@ -1198,6 +1265,10 @@ void MainWindow::doOpenSong( const BString& sPath )
 
 void MainWindow::doNewSong()
 {
+	// Asked for a new song: start fresh rather than recovering the last
+	// untitled one, as upstream.
+	Autosave::remove( Filesystem::emptyPath( Filesystem::Artifact::Song ) );
+	m_sLastAutosave = QString();
 	auto pSong = Song::getEmptySong();
 	if ( pSong != nullptr ) {
 		CoreActionController::setSong( pSong );
@@ -1226,6 +1297,8 @@ bool MainWindow::saveSong()
 		pAlert->Go( nullptr );
 		return false;
 	}
+	// Saved: its autosave holds nothing newer (upstream left it behind).
+	Autosave::remove( sPath );
 	updateTitle();
 	return true;
 }

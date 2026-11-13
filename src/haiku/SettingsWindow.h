@@ -70,6 +70,7 @@ private:
 	// General
 	BCheckBox* m_pRelativePaths;
 	BSpinner* m_pMaxBars;
+	FormattedSpinner* m_pAutosaves;
 	BTextControl* m_pRubberband;
 	// Audio
 	BMenuField* m_pAudioDriver;

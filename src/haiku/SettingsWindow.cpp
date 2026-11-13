@@ -85,6 +85,7 @@ static BString toBString( const QString& s )
 struct SettingsValues {
 	bool bRelativePaths;
 	int nMaxBars;
+	int nAutosaves;
 	QString sRubberband;
 	Preferences::AudioDriver audioDriver;
 	unsigned nBufferSize, nSampleRate, nPolyphony;
@@ -107,6 +108,7 @@ struct SettingsValues {
 		SettingsValues v;
 		v.bRelativePaths = p.getUseRelativeFileNamesForPlaylists();
 		v.nMaxBars = p.getMaxBars();
+		v.nAutosaves = p.m_nAutosavesPerHour;
 		v.sRubberband = p.m_sRubberBandCLIexecutable;
 		v.audioDriver = p.m_audioDriver;
 		v.nBufferSize = p.m_nBufferSize;
@@ -199,6 +201,11 @@ BView* SettingsWindow::buildGeneral()
 									  new BMessage( kMsgChanged ) );
 	m_pMaxBars = new BSpinner( "max bars", B_TRANSLATE( "Maximum number of bars:" ), new BMessage( kMsgChanged ) );
 	m_pMaxBars->SetRange( 1, 800 );
+	// Upstream allows at most one autosave a second.
+	m_pAutosaves = new FormattedSpinner( "autosaves", B_TRANSLATE( "Autosaves per hour:" ), new BMessage( kMsgChanged ),
+										 FormattedSpinner::offAt( 0 ) );
+	m_pAutosaves->SetRange( 0, 360 );
+	m_pAutosaves->SetToolTip( B_TRANSLATE( "How often unsaved changes are saved to a hidden file next to the song" ) );
 	m_pRubberband = new BTextControl( "rubberband", B_TRANSLATE( "Rubberband program:" ), "",
 									  new BMessage( kMsgChanged ) );
 	m_pRubberband->SetToolTip( B_TRANSLATE( "The rubberband command-line tool, used to fit samples to the tempo" ) );
@@ -208,6 +215,7 @@ BView* SettingsWindow::buildGeneral()
 		.SetInsets( B_USE_DEFAULT_SPACING )
 		.Add( m_pRelativePaths )
 		.Add( m_pMaxBars )
+		.Add( m_pAutosaves )
 		.Add( m_pRubberband )
 		.AddGlue();
 	return pView;
@@ -428,6 +436,7 @@ void SettingsWindow::load()
 
 	m_pRelativePaths->SetValue( v.bRelativePaths );
 	m_pMaxBars->SetValue( v.nMaxBars );
+	m_pAutosaves->SetValue( v.nAutosaves );
 	m_pRubberband->SetText( toBString( v.sRubberband ) );
 
 	for ( int32 i = 0; i < m_pAudioDriver->Menu()->CountItems(); i++ ) {
@@ -542,6 +551,7 @@ void SettingsWindow::apply( const SettingsValues& v )
 
 	pPref->setUseRelativeFileNamesForPlaylists( v.bRelativePaths );
 	pPref->setMaxBars( v.nMaxBars );
+	pPref->m_nAutosavesPerHour = v.nAutosaves;
 	pPref->m_sRubberBandCLIexecutable = v.sRubberband;
 	pPref->m_audioDriver = v.audioDriver;
 	pPref->m_nBufferSize = v.nBufferSize;
@@ -590,7 +600,7 @@ void SettingsWindow::updateButtons()
 {
 	const SettingsValues now = SettingsValues::from( *Preferences::get_instance() );
 	const SettingsValues& o = *m_pOriginal;
-	const bool bChanged = now.bRelativePaths != o.bRelativePaths || now.nMaxBars != o.nMaxBars ||
+	const bool bChanged = now.bRelativePaths != o.bRelativePaths || now.nMaxBars != o.nMaxBars || now.nAutosaves != o.nAutosaves ||
 		now.sRubberband != o.sRubberband || now.audioDriver != o.audioDriver ||
 		now.nBufferSize != o.nBufferSize || now.nSampleRate != o.nSampleRate ||
 		now.nPolyphony != o.nPolyphony || now.fMetronome != o.fMetronome || now.midiDriver != o.midiDriver ||
@@ -620,6 +630,7 @@ void SettingsWindow::MessageReceived( BMessage* pMessage )
 		SettingsValues v = SettingsValues::from( *pPref );
 		v.bRelativePaths = m_pRelativePaths->Value() == B_CONTROL_ON;
 		v.nMaxBars = m_pMaxBars->Value();
+		v.nAutosaves = m_pAutosaves->Value();
 		v.sRubberband = QString::fromUtf8( m_pRubberband->Text() );
 		v.nPolyphony = m_pPolyphony->Value();
 		v.fMetronome = m_pMetronome->Value() / 100.0f;

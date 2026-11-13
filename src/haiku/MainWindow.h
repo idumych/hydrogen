@@ -27,6 +27,8 @@
 #include <String.h>
 #include <Window.h>
 
+#include <QString>
+
 class BFilePanel;
 class BMenu;
 class BMenuItem;
@@ -80,6 +82,9 @@ private:
 
 	void transport( uint32 what );
 
+	/** (Re)starts the autosave timer if the setting changed. */
+	void startAutosave();
+	void autosave();
 	void updateDrumkitMenu();
 	void saveDrumkit();
 	void exportDrumkit( const BString& sTarget );
@@ -99,6 +104,10 @@ private:
 	BMenu* m_pRecentMenu;
 	BMenu* m_pKitOpenMenu;
 	BFilePanel* m_pKitExportPanel = nullptr;
+	BMessageRunner* m_pAutosaveRunner = nullptr;
+	int m_nAutosavesPerHour = -1;
+	/** The last autosave file written, removed when the song's name changes. */
+	QString m_sLastAutosave;
 	BFilePanel* m_pKitImportPanel = nullptr;
 	BMenuItem* m_pUndoItem;
 	BMenuItem* m_pRedoItem;

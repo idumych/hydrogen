@@ -27,6 +27,7 @@ add_dependencies(h2miditest hydrogen-core-${VERSION})
 
 add_executable(Hydrogen
     App.cpp
+    Autosave.cpp
     Colors.cpp
     ComponentEditor.cpp
     Controls.cpp
@@ -55,7 +56,6 @@ set_property(TARGET Hydrogen PROPERTY CXX_STANDARD 17)
 target_link_libraries(Hydrogen
     hydrogen-core-${VERSION}
     Qt${QT_VERSION_MAJOR}::Core
-    Qt${QT_VERSION_MAJOR}::Gui
     be tracker translation localestub
 )
 add_dependencies(Hydrogen hydrogen-core-${VERSION})

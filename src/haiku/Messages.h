@@ -89,6 +89,7 @@ enum : uint32 {
 
 	// Internal
 	kMsgPollCore = 'Hpol',
+	kMsgAutosave = 'Haut',
 	kMsgSaveAndThen = 'Hsat',
 	kMsgPatternEdited = 'Hped',
 };

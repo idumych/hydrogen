@@ -51,7 +51,7 @@
 
 #include <QDir>
 #include <QFileInfo>
-#include <QTextDocument>
+#include <QRegularExpression>
 
 #include <core/Basics/Drumkit.h>
 #include <core/Basics/Instrument.h>
@@ -94,6 +94,26 @@ static BString toBString( const QString& s )
 static QString toQString( const char* s )
 {
 	return QString::fromUtf8( s );
+}
+
+/** Upstream saves kit notes as a Qt rich text document (QTextEdit's
+ * toHtml()); this keeps their text and line breaks. QTextDocument would
+ * need QtGui and a QGuiApplication. */
+static QString plainText( const QString& sInfo )
+{
+	if ( ! sInfo.contains( QRegularExpression( "<(html|body|p|br|!DOCTYPE)[ >/]", QRegularExpression::CaseInsensitiveOption ) ) ) {
+		return sInfo;
+	}
+	QString sText = sInfo;
+	sText.remove( QRegularExpression( "<head>.*</head>", QRegularExpression::CaseInsensitiveOption |
+															 QRegularExpression::DotMatchesEverythingOption ) );
+	sText.remove( QRegularExpression( "[\r\n]" ) );
+	sText.replace( QRegularExpression( "<br ?/?>", QRegularExpression::CaseInsensitiveOption ), "\n" );
+	sText.replace( QRegularExpression( "</p>", QRegularExpression::CaseInsensitiveOption ), "\n" );
+	sText.remove( QRegularExpression( "<[^>]*>" ) );
+	sText.replace( "&lt;", "<" ).replace( "&gt;", ">" ).replace( "&quot;", "\"" ).replace( "&#39;", "'" )
+		.replace( "&nbsp;", " " ).replace( "&amp;", "&" );
+	return sText.trimmed();
 }
 
 static void alert( const BString& sText, alert_type type = B_WARNING_ALERT )
@@ -267,13 +287,7 @@ BView* DrumkitWindow::buildGeneral()
 	m_pAuthor = new BTextControl( "author", B_TRANSLATE( "Author:" ), toBString( pKit->getAuthor() ), nullptr );
 	m_pLicense = std::make_unique<LicenseField>( "license", B_TRANSLATE( "License:" ), pKit->getLicense() );
 
-	// Upstream saves the notes as Qt rich text; show them as plain text.
-	QString sInfo = pKit->getInfo();
-	if ( Qt::mightBeRichText( sInfo ) ) {
-		QTextDocument document;
-		document.setHtml( sInfo );
-		sInfo = document.toPlainText();
-	}
+	const QString sInfo = plainText( pKit->getInfo() );
 	m_pNotes = new BTextView( "notes" );
 	m_pNotes->SetText( toBString( sInfo ) );
 	m_pNotes->SetWordWrap( true );

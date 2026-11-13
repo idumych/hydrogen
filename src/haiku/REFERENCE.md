@@ -154,7 +154,7 @@ Proposed differences from upstream (each can be vetoed):
    menu (Haiku apps follow the system language), the Shortcuts tab (Haiku's
    standard shortcuts), fonts, Qt style, layout, scaling and colour theme
    editing (the system look covers them), JACK/PortAudio/OSC options (not
-   built on Haiku), autosave and the beat counter (not ported yet). The
+   built on Haiku) and the beat counter (not ported yet). The
    MIDI action table (MIDI learn) isn't ported yet.
 19. **Properties window** (File > Song properties…, Pattern > Properties…
    and "Properties…" in the pattern list's menu; upstream's song and
@@ -232,6 +232,17 @@ Proposed differences from upstream (each can be vetoed):
      second time under another spelling of its folder.
    - Left out: the licence table tab, the licence checks before export,
      Online import (not ported yet), Save to session (NSM, not on Haiku).
+
+25. **Autosave** (upstream's): "Autosaves per hour" on the General tab of
+   Settings (0 is off, at most 360). A modified song is saved to
+   ".<name>.autosave.h2song" next to it, or in the user's songs folder if
+   that isn't writable; an untitled one beside Filesystem::emptyPath().
+   Opening a song, or starting, offers to recover an autosave newer than
+   the song ("Don't recover" / "Recover"); recovered songs show as
+   modified and keep their own file name. File > New starts fresh
+   (removes the untitled autosave), as upstream. Differences: a saved
+   song's autosave is removed (upstream left it behind, merely older),
+   and playlists aren't autosaved (the playlist editor isn't ported).
 
 ## Not yet captured
 

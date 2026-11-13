@@ -35,6 +35,7 @@
 #include <Path.h>
 
 #include <QCoreApplication>
+#include <QFileInfo>
 
 #include <core/AudioEngine/AudioEngine.h>
 #include <core/Basics/Song.h>
@@ -46,6 +47,7 @@
 #include <core/Preferences/Preferences.h>
 #include <core/Version.h>
 
+#include "Autosave.h"
 #include "MainWindow.h"
 #include "Settings.h"
 
@@ -173,15 +175,20 @@ void App::ReadyToRun()
 	if ( sSong.isEmpty() ) {
 		sSong = pPref->getLastSongPath();
 	}
+	// Changes an autosave kept from last time are offered back, also for
+	// a song that was never saved (upstream's findAutoSaveFile()).
+	const QString sBase = sSong.isEmpty() ? Filesystem::emptyPath( Filesystem::Artifact::Song )
+										  : QFileInfo( sSong ).absoluteFilePath();
+	const QString sRecover = Autosave::offerRecovery( sBase );
 	std::shared_ptr<Song> pSong;
-	if ( ! sSong.isEmpty() ) {
-		pSong = CoreActionController::loadSong( sSong );
+	if ( ! sSong.isEmpty() || ! sRecover.isEmpty() ) {
+		pSong = CoreActionController::loadSong( sBase, sRecover );
 	}
 	if ( pSong == nullptr ) {
 		pSong = Song::getEmptySong();
 	}
 	CoreActionController::setSong( pSong );
-	Hydrogen::get_instance()->setSongModified( false );
+	Hydrogen::get_instance()->setSongModified( pSong != nullptr && ! sRecover.isEmpty() );
 
 	m_pMainWindow = new MainWindow();
 	m_pMainWindow->Show();
