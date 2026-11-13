@@ -31,6 +31,7 @@
 #endif
 #include <Catalog.h>
 #include <Entry.h>
+#include <FindDirectory.h>
 #include <Path.h>
 
 #include <QCoreApplication>
@@ -77,6 +78,23 @@ void App::bootCore()
 	const BPath logFile = Settings::logFile();
 	// H2_SYS_DATA points at an uninstalled data/ folder (e.g. the source tree).
 	const char* sSysData = getenv( "H2_SYS_DATA" );
+	// The core looks for LADSPA plugins in Linux paths unless told
+	// otherwise: point it at Haiku's system and user plugin folders.
+	if ( getenv( "LADSPA_PATH" ) == nullptr ) {
+		BString sLadspa;
+		for ( directory_which which : { B_USER_NONPACKAGED_LIB_DIRECTORY, B_USER_LIB_DIRECTORY,
+										B_SYSTEM_NONPACKAGED_LIB_DIRECTORY, B_SYSTEM_LIB_DIRECTORY } ) {
+			BPath path;
+			if ( find_directory( which, &path ) == B_OK ) {
+				path.Append( "ladspa" );
+				if ( ! sLadspa.IsEmpty() ) {
+					sLadspa << ":";
+				}
+				sLadspa << path.Path();
+			}
+		}
+		setenv( "LADSPA_PATH", sLadspa.String(), 1 );
+	}
 
 	Logger* pLogger = Logger::bootstrap( Logger::Error | Logger::Warning,
 										 QString::fromUtf8( logFile.Path() ), true, false );

@@ -31,6 +31,7 @@ class BMenu;
 class BMenuItem;
 class BMessageRunner;
 class BSplitView;
+class MixerWindow;
 class PatternEditor;
 class Rack;
 class SongEditor;
@@ -82,6 +83,8 @@ private:
 	PatternEditor* m_pPatternEditor;
 	SongEditor* m_pSongEditor;
 	Rack* m_pRack;
+	MixerWindow* m_pMixer;
+	BMenuItem* m_pMixerItem;
 	BMenuItem* m_pRackItem;
 	BMenuItem* m_pSystemColorsItem;
 	BSplitView* m_pSplitView;

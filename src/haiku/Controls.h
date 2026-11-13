@@ -42,7 +42,8 @@
 class Knob : public BControl
 {
 public:
-	enum class Style { Normal, Center };
+	/** Small: upstream's 18×18 knob for FX sends, without end labels. */
+	enum class Style { Normal, Center, Small };
 
 	Knob( const char* sName, BMessage* pMessage, float fMin, float fMax, float fDefault,
 		  Style style = Style::Normal, bool bIntegerSteps = false );
@@ -102,7 +103,7 @@ private:
 class ScrollPane : public BView
 {
 public:
-	explicit ScrollPane( BView* pContent );
+	explicit ScrollPane( BView* pContent, orientation direction = B_VERTICAL );
 
 	void FrameResized( float fWidth, float fHeight ) override;
 	void AllAttached() override;
@@ -111,6 +112,7 @@ public:
 
 private:
 	BView* m_pContent;
+	orientation m_direction;
 };
 
 #endif

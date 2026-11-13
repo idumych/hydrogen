@@ -135,6 +135,15 @@ Proposed differences from upstream (each can be vetoed):
    layers by dragging, dropping files onto the preview and the "Edit
    layer" button (sample editor) aren't ported yet. Renaming a component
    opens a small window instead of an inline field.
+17. **Mixer:** follows upstream's strips (56×254), FX slots and master
+   section, drawn in the canvas colours. Differences: strip meters use the
+   fader's full height (upstream's are only 20 px tall, which looks like a
+   bug — it uses the fader's width), double-click sets a fader to unity
+   (1.0) instead of Ctrl+click setting the 1.5 maximum, and each effect
+   slot has a "Choose…" menu of the installed LADSPA plugins instead of
+   upstream's selector dialog. The plugin parameter window ("Edit"), the
+   mixer settings dialog (pan law) and MIDI learn aren't ported yet. On
+   Haiku, LADSPA_PATH defaults to the system and user lib/ladspa folders.
 
 ## Not yet captured
 

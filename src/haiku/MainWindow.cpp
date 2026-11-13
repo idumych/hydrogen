@@ -58,6 +58,7 @@
 #include "Colors.h"
 #include "Messages.h"
 #include "PatternActions.h"
+#include "Mixer.h"
 #include "PatternEditor.h"
 #include "Rack.h"
 #include "SongEditor.h"
@@ -158,6 +159,17 @@ MainWindow::MainWindow()
 	updateRecentMenu();
 	updateUndoItems();
 	PatternActions::setObserver( BMessenger( this ) );
+
+	// A new window is hidden and its looper starts with the first Show():
+	// Hide() + Show() starts it while keeping it hidden.
+	const bool bMixerShown = Settings::get().GetBool( "mixer shown", false );
+	m_pMixer = new MixerWindow();
+	m_pMixer->Hide();
+	m_pMixer->Show();
+	if ( bMixerShown && m_pMixer->Lock() ) {
+		m_pMixer->Show();
+		m_pMixer->Unlock();
+	}
 
 	BMessage poll( kMsgPollCore );
 	m_pPollRunner = new BMessageRunner( BMessenger( this ), &poll, 50000 );
@@ -270,6 +282,7 @@ BMenu* MainWindow::buildViewMenu()
 								   new BMessage( kMsgShowDirector ), 'D', B_SHIFT_KEY ) );
 	pMenu->AddItem( new BMenuItem( B_TRANSLATE( "Mixer" ),
 								   new BMessage( kMsgShowMixer ), 'M', B_SHIFT_KEY ) );
+	m_pMixerItem = pMenu->FindItem( kMsgShowMixer );
 	m_pRackItem = new BMenuItem( B_TRANSLATE( "Rack" ), new BMessage( kMsgShowRack ), 'I' );
 	pMenu->AddItem( m_pRackItem );
 	pMenu->AddItem( new BMenuItem( B_TRANSLATE( "Automation path" ),
@@ -282,7 +295,8 @@ BMenu* MainWindow::buildViewMenu()
 	for ( int32 i = 0; i < pMenu->CountItems(); i++ ) {
 		if ( pMenu->ItemAt( i )->Message() != nullptr &&
 			 pMenu->ItemAt( i )->Message()->what != kMsgFullScreen &&
-			 pMenu->ItemAt( i )->Message()->what != kMsgShowRack ) {
+			 pMenu->ItemAt( i )->Message()->what != kMsgShowRack &&
+			 pMenu->ItemAt( i )->Message()->what != kMsgShowMixer ) {
 			pMenu->ItemAt( i )->SetEnabled( false );
 		}
 	}
@@ -323,6 +337,10 @@ void MainWindow::MenusBeginning()
 {
 	updateRecentMenu();
 	m_pRackItem->SetMarked( ! m_pRack->IsHidden() );
+	if ( m_pMixer->Lock() ) {
+		m_pMixerItem->SetMarked( ! m_pMixer->IsHidden() );
+		m_pMixer->Unlock();
+	}
 	updateUndoItems();
 }
 
@@ -392,6 +410,10 @@ void MainWindow::pollCore()
 	bool bSong = false;
 	bool bInstrument = false;
 	bool bComponents = false;
+	bool bMixerRebuild = false;
+	bool bMixerUpdate = false;
+	bool bMixerMaster = false;
+	BMessage notes( kMsgMixerNotes );
 	bool bLibrary = false;
 	while ( auto pEvent = pQueue->popEvent() ) {
 		switch ( pEvent->getType() ) {
@@ -410,10 +432,21 @@ void MainWindow::pollCore()
 		case Event::Type::InstrumentLayerChanged:
 			bComponents = true;
 			break;
+		case Event::Type::NoteRender:
+			notes.AddInt32( "strip", pEvent->getValue() );
+			break;
+		case Event::Type::EffectChanged:
+			bMixerRebuild = true;
+			break;
+		case Event::Type::MixerSettingsChanged:
+			bMixerMaster = true;
+			break;
 		case Event::Type::DrumkitLoaded:
 		case Event::Type::DrumkitIsModified:
 		case Event::Type::InstrumentMuteSoloChanged:
 		case Event::Type::InstrumentParametersChanged:
+			bMixerUpdate = true;
+			[[fallthrough]];
 		case Event::Type::PatternChanged:
 		case Event::Type::PatternEditorLocked:
 		case Event::Type::PatternIsModified:
@@ -459,6 +492,22 @@ void MainWindow::pollCore()
 	}
 	if ( bComponents ) {
 		m_pRack->rebuildComponents();
+	}
+	// Kit loaded, song changed, selection moved: the mixer redoes its strips.
+	if ( bTitle || bComponents ) {
+		bMixerRebuild = true;
+	}
+	if ( bMixerRebuild ) {
+		m_pMixer->PostMessage( kMsgMixerRebuild );
+	}
+	else if ( bMixerUpdate || bEditors ) {
+		m_pMixer->PostMessage( kMsgMixerUpdate );
+	}
+	if ( bMixerMaster || bTitle ) {
+		m_pMixer->PostMessage( kMsgMixerMaster );
+	}
+	if ( notes.HasInt32( "strip" ) ) {
+		m_pMixer->PostMessage( &notes );
 	}
 	if ( bInstrument || bTitle || bEditors ) {
 		m_pRack->refreshInstrument();
@@ -702,6 +751,17 @@ void MainWindow::MessageReceived( BMessage* pMessage )
 		m_pAfterSave = nullptr;
 		break;
 
+	case kMsgShowMixer:
+		if ( m_pMixer->Lock() ) {
+			if ( m_pMixer->IsHidden() ) {
+				m_pMixer->Show();
+			}
+			else {
+				m_pMixer->Hide();
+			}
+			m_pMixer->Unlock();
+		}
+		break;
 	case kMsgShowRack:
 		if ( m_pRack->IsHidden() ) {
 			m_pRack->Show();
@@ -880,6 +940,12 @@ bool MainWindow::QuitRequested()
 	}
 
 	Settings::setFrame( kFrameName, Frame() );
+	// The mixer only hides when closed: quit it here, keeping its state.
+	if ( m_pMixer->Lock() ) {
+		m_pMixer->saveSettings();
+		m_pMixer->Quit();
+		m_pMixer = nullptr;
+	}
 	Settings::get().RemoveName( kSplitName );
 	for ( int32 i = 0; i < 2; i++ ) {
 		Settings::get().AddFloat( kSplitName, m_pSplitView->ItemWeight( i ) );

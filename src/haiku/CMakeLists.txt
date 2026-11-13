@@ -32,6 +32,7 @@ add_executable(Hydrogen
     Controls.cpp
     InstrumentParameters.cpp
     MainWindow.cpp
+    Mixer.cpp
     NameWindow.cpp
     PatternActions.cpp
     PatternEditor.cpp
