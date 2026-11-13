@@ -22,6 +22,7 @@
 
 #include "MainWindow.h"
 
+#include <algorithm>
 #include <cmath>
 
 #include <Alert.h>
@@ -39,6 +40,11 @@
 #include <SplitView.h>
 #include <Url.h>
 
+#include <QDir>
+#include <QFile>
+#include <QFileInfo>
+#include <QTemporaryDir>
+
 #if __has_include(<DecimalSpinner.h>)
 #	include <DecimalSpinner.h>
 #else
@@ -47,6 +53,7 @@
 
 #include <core/AudioEngine/AudioEngine.h>
 #include <core/AudioEngine/Transport.h>
+#include <core/Basics/Drumkit.h>
 #include <core/Basics/Event.h>
 #include <core/Basics/PatternList.h>
 #include <core/Basics/Song.h>
@@ -56,8 +63,10 @@
 #include <core/Hydrogen.h>
 #include <core/IO/NullDriver.h>
 #include <core/Preferences/Preferences.h>
+#include <core/SoundLibrary/SoundLibraryDatabase.h>
 
 #include "Colors.h"
+#include "DrumkitWindow.h"
 #include "ExportWindows.h"
 #include "Messages.h"
 #include "Mixer.h"
@@ -80,6 +89,16 @@ using namespace H2Core;
 static const char* kFrameName = "main window frame";
 static const char* kSplitName = "main window split";
 static const char* kRackHiddenName = "rack hidden";
+
+/** Folders and .h2drumkit files, for Drumkit > Import. */
+class DrumkitFileFilter : public BRefFilter
+{
+public:
+	bool Filter( const entry_ref* pRef, BNode* pNode, struct stat_beos*, const char* ) override
+	{
+		return pNode->IsDirectory() || BString( pRef->name ).IEndsWith( ".h2drumkit" );
+	}
+};
 
 static BString toBString( const QString& s )
 {
@@ -186,6 +205,8 @@ MainWindow::~MainWindow()
 	delete m_pPollRunner;
 	delete m_pOpenPanel;
 	delete m_pSavePanel;
+	delete m_pKitExportPanel;
+	delete m_pKitImportPanel;
 	delete m_pAfterSave;
 }
 
@@ -283,11 +304,193 @@ BMenu* MainWindow::buildPatternMenu()
 
 BMenu* MainWindow::buildDrumkitMenu()
 {
-	return disabledMenu( B_TRANSLATE( "Drumkit" ), {
-		B_TRANSLATE( "New" B_UTF8_ELLIPSIS ), B_TRANSLATE( "Open" B_UTF8_ELLIPSIS ), nullptr,
-		B_TRANSLATE( "Properties" B_UTF8_ELLIPSIS ), nullptr, B_TRANSLATE( "Save" ),
-		B_TRANSLATE( "Save as" B_UTF8_ELLIPSIS ), nullptr, B_TRANSLATE( "Export" B_UTF8_ELLIPSIS ),
-		B_TRANSLATE( "Import" B_UTF8_ELLIPSIS ), B_TRANSLATE( "Online import" B_UTF8_ELLIPSIS ) } );
+	BMenu* pMenu = new BMenu( B_TRANSLATE( "Drumkit" ) );
+	pMenu->AddItem( new BMenuItem( B_TRANSLATE( "New" B_UTF8_ELLIPSIS ), new BMessage( kMsgKitNew ) ) );
+	// The installed kits, filled when the menu opens (upstream: a dialog
+	// with the sound library tree).
+	m_pKitOpenMenu = new BMenu( B_TRANSLATE( "Open" ) );
+	pMenu->AddItem( m_pKitOpenMenu );
+	pMenu->AddSeparatorItem();
+	pMenu->AddItem( new BMenuItem( B_TRANSLATE( "Properties" B_UTF8_ELLIPSIS ), new BMessage( kMsgKitProperties ) ) );
+	pMenu->AddSeparatorItem();
+	pMenu->AddItem( new BMenuItem( B_TRANSLATE( "Save" ), new BMessage( kMsgKitSave ) ) );
+	pMenu->AddItem( new BMenuItem( B_TRANSLATE( "Save as" B_UTF8_ELLIPSIS ), new BMessage( kMsgKitSaveAs ) ) );
+	pMenu->AddSeparatorItem();
+	pMenu->AddItem( new BMenuItem( B_TRANSLATE( "Export" B_UTF8_ELLIPSIS ), new BMessage( kMsgKitExport ) ) );
+	pMenu->AddItem( new BMenuItem( B_TRANSLATE( "Import" B_UTF8_ELLIPSIS ), new BMessage( kMsgKitImport ) ) );
+	BMenuItem* pOnline = new BMenuItem( B_TRANSLATE( "Online import" B_UTF8_ELLIPSIS ), nullptr );
+	// Not ported yet.
+	pOnline->SetEnabled( false );
+	pMenu->AddItem( pOnline );
+	return pMenu;
+}
+
+void MainWindow::updateDrumkitMenu()
+{
+	while ( BMenuItem* pItem = m_pKitOpenMenu->RemoveItem( (int32) 0 ) ) {
+		delete pItem;
+	}
+	auto pHydrogen = Hydrogen::get_instance();
+	const auto pSong = pHydrogen->getSong();
+	// The database's keys and kits' paths may name the folder or its
+	// drumkit.xml; compare folders.
+	auto folder = []( const QString& sPath ) {
+		return sPath.endsWith( ".xml" ) ? Filesystem::drumkitDirFromPath( sPath ) : sPath;
+	};
+	const QString sCurrent = pSong != nullptr && pSong->getDrumkit() != nullptr
+								 ? folder( pSong->getDrumkit()->getPath() ) : QString();
+	// System kits first, then the user's and custom ones, each by name.
+	std::vector<std::pair<QString, std::shared_ptr<Drumkit>>> system, user;
+	std::vector<QDir> seen;
+	for ( const auto& [ sPath, pKit ] : pHydrogen->getSoundLibraryDatabase()->getDrumkitDatabase() ) {
+		if ( pKit == nullptr ) {
+			continue;
+		}
+		// The same folder may be listed under two spellings.
+		const QDir dir( folder( sPath ) );
+		if ( std::find( seen.begin(), seen.end(), dir ) != seen.end() ) {
+			continue;
+		}
+		seen.push_back( dir );
+		( Filesystem::DetermineContext( sPath ) == Filesystem::Context::System ? system : user ).emplace_back( sPath, pKit );
+	}
+	auto byName = []( const auto& a, const auto& b ) {
+		return a.second->getName().compare( b.second->getName(), Qt::CaseInsensitive ) < 0;
+	};
+	std::sort( system.begin(), system.end(), byName );
+	std::sort( user.begin(), user.end(), byName );
+	for ( const auto* pGroup : { &system, &user } ) {
+		if ( pGroup == &user && ! system.empty() && ! user.empty() ) {
+			m_pKitOpenMenu->AddSeparatorItem();
+		}
+		for ( const auto& [ sPath, pKit ] : *pGroup ) {
+			BMessage* pMessage = new BMessage( kMsgKitOpen );
+			pMessage->AddString( "path", toBString( sPath ) );
+			BMenuItem* pItem = new BMenuItem( toBString( pKit->getName() ), pMessage );
+			pItem->SetMarked( ! sCurrent.isEmpty() && QDir( sCurrent ) == QDir( folder( sPath ) ) );
+			m_pKitOpenMenu->AddItem( pItem );
+		}
+	}
+	if ( m_pKitOpenMenu->CountItems() == 0 ) {
+		BMenuItem* pItem = new BMenuItem( B_TRANSLATE( "No drumkits installed" ), nullptr );
+		pItem->SetEnabled( false );
+		m_pKitOpenMenu->AddItem( pItem );
+	}
+	m_pKitOpenMenu->SetTargetForItems( this );
+}
+
+void MainWindow::saveDrumkit()
+{
+	auto pHydrogen = Hydrogen::get_instance();
+	const auto pSong = pHydrogen->getSong();
+	if ( pSong == nullptr || pSong->getDrumkit() == nullptr ) {
+		return;
+	}
+	auto pKit = pSong->getDrumkit();
+	// A new kit, or one of the system's: ask where (upstream's Save as).
+	const QString sPath = pKit->getPath();
+	const auto context = sPath.isEmpty() ? Filesystem::Context::Song : Filesystem::DetermineContext( sPath );
+	if ( sPath.isEmpty() || context == Filesystem::Context::System ||
+		 context == Filesystem::Context::SessionReadOnly ) {
+		DrumkitWindow::open( DrumkitWindow::Mode::SaveAs, Frame(), BMessenger( this ) );
+		return;
+	}
+	// From a copy: save() points the samples at the kit's folder.
+	auto pCopy = std::make_shared<Drumkit>( pKit );
+	if ( ! pCopy->save( sPath ) ) {
+		BString sText( B_TRANSLATE( "The drumkit couldn't be saved in \"%folder%\"." ) );
+		sText.ReplaceFirst( "%folder%", toBString( Filesystem::drumkitDirFromPath( sPath ) ) );
+		( new BAlert( B_TRANSLATE( "Drumkit" ), sText, B_TRANSLATE( "OK" ), nullptr, nullptr, B_WIDTH_AS_USUAL,
+					  B_STOP_ALERT ) )->Go();
+		return;
+	}
+	pKit->setIsModified( false );
+	EventQueue::get_instance()->pushEvent( Event::Type::DrumkitIsModified, -1 );
+	pHydrogen->getSoundLibraryDatabase()->updateDrumkits( Event::Trigger::Default );
+}
+
+void MainWindow::exportDrumkit( const BString& sTarget )
+{
+	const auto pSong = Hydrogen::get_instance()->getSong();
+	if ( pSong == nullptr || pSong->getDrumkit() == nullptr ) {
+		return;
+	}
+	auto fail = [this]( const char* sText ) {
+		( new BAlert( B_TRANSLATE( "Drumkit" ), sText, B_TRANSLATE( "OK" ), nullptr, nullptr, B_WIDTH_AS_USUAL,
+					  B_STOP_ALERT ) )->Go();
+	};
+	// As upstream: the kit as it is in the song, saved to a temporary
+	// folder and packed from there.
+	QTemporaryDir kitDir, outDir;
+	if ( ! kitDir.isValid() || ! outDir.isValid() ) {
+		fail( B_TRANSLATE( "The drumkit couldn't be exported." ) );
+		return;
+	}
+	auto pCopy = std::make_shared<Drumkit>( pSong->getDrumkit() );
+	pCopy->setPath( Filesystem::drumkitPathFromDir( kitDir.path() ) );
+	if ( ! pCopy->save() ) {
+		fail( B_TRANSLATE( "The drumkit couldn't be exported." ) );
+		return;
+	}
+	// exportTo() takes a folder and names the file itself; upstream passed
+	// the chosen file name and got a folder of that name.
+	if ( ! pCopy->exportTo( outDir.path() ) ) {
+		fail( B_TRANSLATE( "The drumkit couldn't be exported." ) );
+		return;
+	}
+	const QString sMade = QDir( outDir.path() ).absoluteFilePath( pCopy->getExportName() + Filesystem::sDrumkitSuffix );
+	const QString sFile = QString::fromUtf8( sTarget.String() );
+	QFile::remove( sFile );
+	if ( ! QFile::rename( sMade, sFile ) && ! QFile::copy( sMade, sFile ) ) {
+		fail( B_TRANSLATE( "The exported drumkit couldn't be written to the chosen file." ) );
+		return;
+	}
+	Preferences::get_instance()->setLastExportDrumkitDirectory( QFileInfo( sFile ).absolutePath() );
+	BString sText( B_TRANSLATE( "The drumkit was exported to \"%file%\"." ) );
+	sText.ReplaceFirst( "%file%", sTarget );
+	( new BAlert( B_TRANSLATE( "Drumkit" ), sText, B_TRANSLATE( "OK" ), nullptr, nullptr, B_WIDTH_AS_USUAL,
+				  B_INFO_ALERT ) )->Go( nullptr );
+}
+
+void MainWindow::importDrumkit( const BString& sSource )
+{
+	auto pHydrogen = Hydrogen::get_instance();
+	const QString sFile = QString::fromUtf8( sSource.String() );
+	Preferences::get_instance()->setLastImportDrumkitDirectory( QFileInfo( sFile ).absolutePath() );
+	QString sInstalled;
+	bool bEncodingIssues = false;
+	if ( ! Drumkit::install( sFile, "", &sInstalled, &bEncodingIssues, false ) ) {
+		BString sText( B_TRANSLATE( "The drumkit \"%file%\" couldn't be imported." ) );
+		sText.ReplaceFirst( "%file%", sSource );
+		( new BAlert( B_TRANSLATE( "Drumkit" ), sText, B_TRANSLATE( "OK" ), nullptr, nullptr, B_WIDTH_AS_USUAL,
+					  B_STOP_ALERT ) )->Go();
+		return;
+	}
+	pHydrogen->getSoundLibraryDatabase()->updateDrumkits( Event::Trigger::Default );
+	// Loaded at once, as upstream; undoable.
+	// install() reports the kit's folder (upstream took its parent).
+	const QString sFolder = sInstalled.endsWith( ".xml" ) ? Filesystem::drumkitDirFromPath( sInstalled ) : sInstalled;
+	// By the database's own spelling of the folder: getDrumkit() adds any
+	// other spelling as a second, custom kit.
+	QString sKey = sFolder;
+	for ( const auto& [ sPath, pKit ] : pHydrogen->getSoundLibraryDatabase()->getDrumkitDatabase() ) {
+		const QString sKitFolder = sPath.endsWith( ".xml" ) ? Filesystem::drumkitDirFromPath( sPath ) : sPath;
+		if ( QDir( sKitFolder ) == QDir( sFolder ) ) {
+			sKey = sPath;
+			break;
+		}
+	}
+	if ( auto pCommand = SongActions::switchDrumkit( toBString( sKey ) ) ) {
+		UndoStack::get().push( std::move( pCommand ) );
+		updateUndoItems();
+	}
+	BString sText( B_TRANSLATE( "The drumkit was imported to \"%folder%\"." ) );
+	sText.ReplaceFirst( "%folder%", toBString( sFolder ) );
+	if ( bEncodingIssues ) {
+		sText << "\n\n" << B_TRANSLATE( "Some file names couldn't be converted and may be wrong." );
+	}
+	( new BAlert( B_TRANSLATE( "Drumkit" ), sText, B_TRANSLATE( "OK" ), nullptr, nullptr, B_WIDTH_AS_USUAL,
+				  bEncodingIssues ? B_WARNING_ALERT : B_INFO_ALERT ) )->Go( nullptr );
 }
 
 BMenu* MainWindow::buildViewMenu()
@@ -346,6 +549,7 @@ BMenu* MainWindow::buildHelpMenu()
 void MainWindow::MenusBeginning()
 {
 	updateRecentMenu();
+	updateDrumkitMenu();
 	m_pRackItem->SetMarked( ! m_pRack->IsHidden() );
 	if ( m_pMixer->Lock() ) {
 		m_pMixerItem->SetMarked( ! m_pMixer->IsHidden() );
@@ -630,6 +834,96 @@ void MainWindow::MessageReceived( BMessage* pMessage )
 		m_pPatternEditor->redrawNotes();
 		updateUndoItems();
 		break;
+	case kMsgKitNew: {
+		BAlert* pAlert = new BAlert( B_TRANSLATE( "Drumkit" ),
+									 B_TRANSLATE( "Replace the song's drumkit with an empty one?" ),
+									 B_TRANSLATE( "Cancel" ), B_TRANSLATE( "Replace" ), nullptr,
+									 B_WIDTH_AS_USUAL, B_WARNING_ALERT );
+		pAlert->SetShortcut( 0, B_ESCAPE );
+		if ( pAlert->Go() == 1 ) {
+			if ( auto pCommand = SongActions::newDrumkit() ) {
+				UndoStack::get().push( std::move( pCommand ) );
+				updateUndoItems();
+			}
+		}
+		break;
+	}
+	case kMsgKitOpen: {
+		BString sPath;
+		if ( pMessage->FindString( "path", &sPath ) == B_OK ) {
+			if ( auto pCommand = SongActions::switchDrumkit( sPath ) ) {
+				UndoStack::get().push( std::move( pCommand ) );
+				updateUndoItems();
+			}
+		}
+		break;
+	}
+	case kMsgKitProperties:
+	case kMsgKitSaveAs:
+		DrumkitWindow::open( pMessage->what == kMsgKitSaveAs ? DrumkitWindow::Mode::SaveAs
+															 : DrumkitWindow::Mode::Properties,
+							 Frame(), BMessenger( this ) );
+		break;
+	case kMsgKitSave:
+		saveDrumkit();
+		break;
+	case kMsgKitExport: {
+		const auto pSong = Hydrogen::get_instance()->getSong();
+		if ( pSong == nullptr || pSong->getDrumkit() == nullptr ) {
+			break;
+		}
+		if ( m_pKitExportPanel == nullptr ) {
+			m_pKitExportPanel = new BFilePanel( B_SAVE_PANEL, new BMessenger( this ), nullptr, 0, false,
+												new BMessage( kMsgKitExportTo ) );
+		}
+		BString sTitle( B_TRANSLATE( "Export drumkit" ) );
+		sTitle << " " << toBString( pSong->getDrumkit()->getName() );
+		m_pKitExportPanel->Window()->SetTitle( sTitle );
+		QString sDir = Preferences::get_instance()->getLastExportDrumkitDirectory();
+		if ( ! Filesystem::dirWritable( sDir, true ) ) {
+			sDir = QDir::homePath();
+		}
+		m_pKitExportPanel->SetPanelDirectory( toBString( sDir ).String() );
+		m_pKitExportPanel->SetSaveText(
+			toBString( pSong->getDrumkit()->getExportName() + Filesystem::sDrumkitSuffix ) );
+		m_pKitExportPanel->Show();
+		break;
+	}
+	case kMsgKitExportTo: {
+		entry_ref dir;
+		BString sName;
+		if ( pMessage->FindRef( "directory", &dir ) == B_OK && pMessage->FindString( "name", &sName ) == B_OK ) {
+			if ( ! sName.IEndsWith( toBString( Filesystem::sDrumkitSuffix ) ) ) {
+				sName << toBString( Filesystem::sDrumkitSuffix );
+			}
+			BPath path( &dir );
+			path.Append( sName );
+			exportDrumkit( path.Path() );
+		}
+		break;
+	}
+	case kMsgKitImport: {
+		if ( m_pKitImportPanel == nullptr ) {
+			static DrumkitFileFilter filter;
+			m_pKitImportPanel = new BFilePanel( B_OPEN_PANEL, new BMessenger( this ), nullptr, B_FILE_NODE, false,
+												new BMessage( kMsgKitImportFrom ), &filter );
+			m_pKitImportPanel->Window()->SetTitle( B_TRANSLATE( "Import drumkit" ) );
+		}
+		QString sDir = Preferences::get_instance()->getLastImportDrumkitDirectory();
+		if ( ! QDir( sDir ).exists() ) {
+			sDir = QDir::homePath();
+		}
+		m_pKitImportPanel->SetPanelDirectory( toBString( sDir ).String() );
+		m_pKitImportPanel->Show();
+		break;
+	}
+	case kMsgKitImportFrom: {
+		entry_ref ref;
+		if ( pMessage->FindRef( "refs", &ref ) == B_OK ) {
+			importDrumkit( BPath( &ref ).Path() );
+		}
+		break;
+	}
 	case kMsgSongProperties:
 		( new PropertiesWindow( -1, Frame(), BMessenger( this ) ) )->Show();
 		break;

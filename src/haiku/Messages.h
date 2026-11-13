@@ -45,6 +45,17 @@ enum : uint32 {
 	kMsgPatternProperties = 'Hppr',
 	kMsgPatternDuplicate = 'Hpdu',
 
+	// Drumkit
+	kMsgKitNew = 'Hkne',
+	kMsgKitOpen = 'Hkop',
+	kMsgKitProperties = 'Hkpr',
+	kMsgKitSave = 'Hksv',
+	kMsgKitSaveAs = 'Hksa',
+	kMsgKitExport = 'Hkex',
+	kMsgKitExportTo = 'Hket',
+	kMsgKitImport = 'Hkim',
+	kMsgKitImportFrom = 'Hkif',
+
 	// Edit
 	kMsgUndo = 'Hund',
 	kMsgRedo = 'Hred',

@@ -80,6 +80,11 @@ private:
 
 	void transport( uint32 what );
 
+	void updateDrumkitMenu();
+	void saveDrumkit();
+	void exportDrumkit( const BString& sTarget );
+	void importDrumkit( const BString& sSource );
+
 	TransportBar* m_pTransportBar;
 	PatternEditor* m_pPatternEditor;
 	SongEditor* m_pSongEditor;
@@ -92,6 +97,9 @@ private:
 	BMessenger m_exportMidi;
 	BSplitView* m_pSplitView;
 	BMenu* m_pRecentMenu;
+	BMenu* m_pKitOpenMenu;
+	BFilePanel* m_pKitExportPanel = nullptr;
+	BFilePanel* m_pKitImportPanel = nullptr;
 	BMenuItem* m_pUndoItem;
 	BMenuItem* m_pRedoItem;
 	BFilePanel* m_pOpenPanel;

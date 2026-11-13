@@ -33,6 +33,7 @@
 #include <core/License.h>
 
 namespace H2Core {
+	class Drumkit;
 	class Instrument;
 };
 
@@ -59,6 +60,15 @@ namespace SongActions
 	/** Switches the song to the drumkit at @a sPath (upstream's
 	 * SE_switchDrumkitAction). */
 	std::unique_ptr<UndoCommand> switchDrumkit( const BString& sPath );
+	/** Makes @a pNew the song's drumkit; @a sName names the undo step. */
+	std::unique_ptr<UndoCommand> replaceDrumkit( std::shared_ptr<H2Core::Drumkit> pNew, const char* sName );
+	/** Replaces the song's drumkit by an empty one (Drumkit > New). */
+	std::unique_ptr<UndoCommand> newDrumkit();
+	/** Makes @a pNew, an edited copy of the song's drumkit, the song's kit
+	 * (Drumkit > Properties). Notes without a type that belong to an
+	 * instrument which just got one take it over, as upstream does, so
+	 * switching kits later maps them by type. */
+	std::unique_ptr<UndoCommand> editDrumkit( std::shared_ptr<H2Core::Drumkit> pNew, const char* sName );
 	/** Renames instrument @a nInstrument (SE_replaceInstrumentAction). */
 	std::unique_ptr<UndoCommand> renameInstrument( int nInstrument, const BString& sName );
 	/** Replaces an instrument by an edited copy (upstream's

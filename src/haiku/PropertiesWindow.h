@@ -23,10 +23,12 @@
 #ifndef HAIKU_PROPERTIES_WINDOW_H
 #define HAIKU_PROPERTIES_WINDOW_H
 
+#include <memory>
+
 #include <Messenger.h>
 #include <Window.h>
 
-class BMenuField;
+class LicenseField;
 class BSpinner;
 class BTextControl;
 class BTextView;
@@ -39,19 +41,17 @@ class PropertiesWindow : public BWindow
 public:
 	/** @a nPattern -1 edits the song, otherwise that pattern. */
 	PropertiesWindow( int nPattern, BRect parentFrame, BMessenger owner );
+	~PropertiesWindow();
 
 	void MessageReceived( BMessage* pMessage ) override;
 
 private:
-	void updateLicenseText();
-
 	int m_nPattern;
 	BMessenger m_owner;
 	BTextControl* m_pName;
 	BSpinner* m_pVersion;
 	BTextControl* m_pAuthor;
-	BMenuField* m_pLicense;
-	BTextControl* m_pLicenseText;
+	std::unique_ptr<LicenseField> m_pLicense;
 	BTextView* m_pNotes;
 	BTextControl* m_pTags;
 };

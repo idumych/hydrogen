@@ -26,8 +26,10 @@
 
 #include <core/Basics/Drumkit.h>
 #include <core/Basics/GridPoint.h>
+#include <core/AudioEngine/AudioEngine.h>
 #include <core/Basics/Instrument.h>
 #include <core/Basics/InstrumentList.h>
+#include <core/Basics/Note.h>
 #include <core/Basics/Pattern.h>
 #include <core/Basics/PatternList.h>
 #include <core/Basics/Song.h>
@@ -242,15 +244,79 @@ std::unique_ptr<UndoCommand> clearSequence()
 class DrumkitCommand : public UndoCommand
 {
 public:
-	DrumkitCommand( std::shared_ptr<Drumkit> pNew, std::shared_ptr<Drumkit> pOld )
-		: UndoCommand( B_TRANSLATE( "load drumkit" ) ), m_pNew( pNew ), m_pOld( pOld ) {}
+	DrumkitCommand( std::shared_ptr<Drumkit> pNew, std::shared_ptr<Drumkit> pOld,
+					const char* sName = B_TRANSLATE( "load drumkit" ) )
+		: UndoCommand( sName ), m_pNew( pNew ), m_pOld( pOld ) {}
 
-	void redo() override { CoreActionController::setDrumkit( m_pNew ); }
-	void undo() override { CoreActionController::setDrumkit( m_pOld ); }
+	void redo() override
+	{
+		CoreActionController::setDrumkit( m_pNew );
+		setTypes( true );
+	}
+	void undo() override
+	{
+		setTypes( false );
+		CoreActionController::setDrumkit( m_pOld );
+	}
+
+	/** Notes to give @a sType on redo and no type on undo. */
+	std::vector<std::pair<std::shared_ptr<Note>, Instrument::Type>> m_types;
 
 private:
+	void setTypes( bool bNew )
+	{
+		if ( m_types.empty() ) {
+			return;
+		}
+		auto pAudioEngine = Hydrogen::get_instance()->getAudioEngine();
+		pAudioEngine->lock( RIGHT_HERE );
+		for ( auto& [ pNote, sType ] : m_types ) {
+			pNote->setType( bNew ? sType : Instrument::Type() );
+		}
+		pAudioEngine->unlock();
+	}
+
 	std::shared_ptr<Drumkit> m_pNew, m_pOld;
 };
+
+std::unique_ptr<UndoCommand> replaceDrumkit( std::shared_ptr<Drumkit> pNew, const char* sName )
+{
+	auto pSong = song();
+	if ( pSong == nullptr || pNew == nullptr ) {
+		return nullptr;
+	}
+	return std::make_unique<DrumkitCommand>( pNew, pSong->getDrumkit(), sName );
+}
+
+std::unique_ptr<UndoCommand> newDrumkit()
+{
+	return replaceDrumkit( Drumkit::getEmptyDrumkit(), B_TRANSLATE( "new drumkit" ) );
+}
+
+std::unique_ptr<UndoCommand> editDrumkit( std::shared_ptr<Drumkit> pNew, const char* sName )
+{
+	auto pSong = song();
+	if ( pSong == nullptr || pNew == nullptr || pSong->getDrumkit() == nullptr ) {
+		return nullptr;
+	}
+	auto pOld = pSong->getDrumkit();
+	auto pCommand = std::make_unique<DrumkitCommand>( pNew, pOld, sName );
+	for ( const auto& pInstrument : *pNew->getInstruments() ) {
+		auto pBefore = pInstrument != nullptr ? pOld->getInstruments()->find( pInstrument->getId() ) : nullptr;
+		if ( pBefore == nullptr || ! pBefore->getType().isEmpty() || pInstrument->getType().isEmpty() ) {
+			continue;
+		}
+		for ( const auto& pPattern : *pSong->getPatternList() ) {
+			for ( const auto& [ nPosition, pNote ] : *pPattern->getNotes() ) {
+				if ( pNote != nullptr && pNote->getType().isEmpty() &&
+					 pNote->getInstrumentId() == pInstrument->getId() ) {
+					pCommand->m_types.emplace_back( pNote, pInstrument->getType() );
+				}
+			}
+		}
+	}
+	return pCommand;
+}
 
 std::unique_ptr<UndoCommand> switchDrumkit( const BString& sPath )
 {

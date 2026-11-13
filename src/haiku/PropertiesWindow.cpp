@@ -45,6 +45,7 @@
 #include <core/Hydrogen.h>
 #include <core/License.h>
 
+#include "LicenseField.h"
 #include "SongActions.h"
 #include "UndoStack.h"
 
@@ -55,7 +56,6 @@ using namespace H2Core;
 
 enum : uint32 {
 	kMsgApply = 'PWap',
-	kMsgLicense = 'PWli',
 };
 
 static BString toBString( const QString& s )
@@ -83,31 +83,7 @@ PropertiesWindow::PropertiesWindow( int nPattern, BRect parentFrame, BMessenger 
 	m_pVersion->SetValue( p.nVersion );
 	m_pAuthor = new BTextControl( "author", B_TRANSLATE( "Author:" ), toBString( p.sAuthor ), nullptr );
 
-	// Upstream's licence menu: the item index is the licence type.
-	BPopUpMenu* pLicenseMenu = new BPopUpMenu( "license" );
-	for ( int i = License::CC_0; i <= License::Unspecified; i++ ) {
-		BString sLabel;
-		if ( i == License::Other ) {
-			sLabel = B_TRANSLATE( "Other" );
-		}
-		else if ( i == License::Unspecified ) {
-			sLabel = B_TRANSLATE( "Unspecified" );
-		}
-		else {
-			sLabel = toBString( License::LicenseTypeToQString( static_cast<License::LicenseType>( i ) ) );
-			if ( i == License::CC_0 ) {
-				sLabel << " " << B_TRANSLATE( "(public domain)" );
-			}
-		}
-		BMessage* pMessage = new BMessage( kMsgLicense );
-		pMessage->AddInt32( "type", i );
-		BMenuItem* pItem = new BMenuItem( sLabel, pMessage );
-		pItem->SetMarked( i == p.license.getType() );
-		pLicenseMenu->AddItem( pItem );
-	}
-	m_pLicense = new BMenuField( "license", B_TRANSLATE( "License:" ), pLicenseMenu );
-	m_pLicenseText = new BTextControl( "license text", nullptr, toBString( p.license.getLicenseString() ), nullptr );
-	m_pLicenseText->SetToolTip( B_TRANSLATE( "The licence as it is written into the file" ) );
+	m_pLicense = std::make_unique<LicenseField>( "license", B_TRANSLATE( "License:" ), p.license );
 
 	m_pNotes = new BTextView( "notes" );
 	m_pNotes->SetText( toBString( p.sNotes ) );
@@ -133,8 +109,8 @@ PropertiesWindow::PropertiesWindow( int nPattern, BRect parentFrame, BMessenger 
 			.Add( m_pVersion->CreateLabelLayoutItem(), 0, 1 )
 			.Add( m_pVersion->CreateTextViewLayoutItem(), 1, 1 )
 			.AddTextControl( m_pAuthor, 0, 2 )
-			.AddMenuField( m_pLicense, 0, 3 )
-			.Add( m_pLicenseText, 1, 4 )
+			.AddMenuField( m_pLicense->menuField(), 0, 3 )
+			.Add( m_pLicense->textControl(), 1, 4 )
 			.Add( new BStringView( nullptr, B_TRANSLATE( "Notes:" ) ), 0, 5 )
 			.Add( pNotesScroll, 1, 5 )
 			.AddTextControl( m_pTags, 0, 6 )
@@ -152,43 +128,17 @@ PropertiesWindow::PropertiesWindow( int nPattern, BRect parentFrame, BMessenger 
 		pPathLabel->Hide();
 		pPath->Hide();
 	}
-	updateLicenseText();
+	m_pLicense->updateVisibility();
 	m_pName->MakeFocus( true );
 	CenterIn( parentFrame );
-}
-
-void PropertiesWindow::updateLicenseText()
-{
-	BMenuItem* pItem = m_pLicense->Menu()->FindMarked();
-	int32 nType = License::Unspecified;
-	if ( pItem != nullptr ) {
-		pItem->Message()->FindInt32( "type", &nType );
-	}
-	// Upstream hides the text for "Unspecified".
-	if ( nType == License::Unspecified ) {
-		if ( ! m_pLicenseText->IsHidden( m_pLicenseText ) ) {
-			m_pLicenseText->Hide();
-		}
-	}
-	else if ( m_pLicenseText->IsHidden( m_pLicenseText ) ) {
-		m_pLicenseText->Show();
-	}
 }
 
 void PropertiesWindow::MessageReceived( BMessage* pMessage )
 {
 	switch ( pMessage->what ) {
-	case kMsgLicense: {
-		int32 nType = License::Unspecified;
-		pMessage->FindInt32( "type", &nType );
-		// Picking a licence fills in its standard text, like upstream.
-		if ( nType != License::Other ) {
-			m_pLicenseText->SetText( toBString(
-				License::LicenseTypeToQString( static_cast<License::LicenseType>( nType ) ) ) );
-		}
-		updateLicenseText();
+	case LicenseField::kMsgChosen:
+		m_pLicense->chosen( pMessage );
 		break;
-	}
 	case kMsgApply: {
 		SongActions::Properties p = m_nPattern < 0 ? SongActions::songProperties()
 												   : SongActions::patternProperties( m_nPattern );
@@ -207,12 +157,7 @@ void PropertiesWindow::MessageReceived( BMessage* pMessage )
 		}
 		p.nVersion = m_pVersion->Value();
 		p.sAuthor = toQString( m_pAuthor->Text() );
-		int32 nType = License::Unspecified;
-		if ( BMenuItem* pItem = m_pLicense->Menu()->FindMarked() ) {
-			pItem->Message()->FindInt32( "type", &nType );
-		}
-		p.license = License( nType == License::Unspecified ? QString() : toQString( m_pLicenseText->Text() ) );
-		p.license.setCopyrightHolder( p.sAuthor );
+		p.license = m_pLicense->license( p.sAuthor );
 		p.sNotes = toQString( m_pNotes->Text() );
 		p.tags.clear();
 		for ( const QString& sTag : toQString( m_pTags->Text() ).split( ',' ) ) {
@@ -230,3 +175,5 @@ void PropertiesWindow::MessageReceived( BMessage* pMessage )
 		BWindow::MessageReceived( pMessage );
 	}
 }
+
+PropertiesWindow::~PropertiesWindow() = default;

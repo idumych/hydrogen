@@ -207,6 +207,32 @@ Proposed differences from upstream (each can be vetoed):
    per slot, sized to its controls up to the screen width, remembering
    its frame; it follows changes made elsewhere (another song, Bypass).
 
+24. **Drumkit menu** (upstream's, minus shortcut-less session items):
+   - *New…* asks, then replaces the song's kit with an empty one (undoable).
+   - *Open ▸* lists the installed kits, system kits first, the song's kit
+     ticked (upstream: a dialog with the sound library tree). Undoable.
+   - *Properties…* (DrumkitWindow): General tab with name, version,
+     author, licence + text, notes, tags, image with preview, Choose…
+     and Clear, image licence; Instrument types tab (types must be
+     unique, duplicates marked). Apply is one undoable step; notes of an
+     instrument that just got a type take it over, as upstream. Notes are
+     shown and saved as plain text (upstream wrapped them in Qt HTML on
+     every save). A new image is copied into the cache as upstream; no
+     image is ever deleted (upstream could delete the one it copied).
+     The song isn't saved behind the user's back (upstream saved it).
+   - *Save* writes a user or custom kit to its folder; a new or system
+     kit goes to *Save as…*, the same window with a Folder field
+     (following the name, default in the user's drumkits). Written from
+     a copy, so the song's kit keeps its samples' paths.
+   - *Export…* saves the kit as it is in the song to an .h2drumkit file
+     with the chosen name (upstream made a folder of that name and put
+     the archive inside).
+   - *Import…* installs an .h2drumkit into the user's drumkits and loads
+     it (undoable). Fixed: the kit was entered into the sound library a
+     second time under another spelling of its folder.
+   - Left out: the licence table tab, the licence checks before export,
+     Online import (not ported yet), Save to session (NSM, not on Haiku).
+
 ## Not yet captured
 
 Playlist editor, director, MIDI control dialog.

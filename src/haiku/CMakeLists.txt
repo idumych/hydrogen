@@ -30,9 +30,11 @@ add_executable(Hydrogen
     Colors.cpp
     ComponentEditor.cpp
     Controls.cpp
+    DrumkitWindow.cpp
     EffectWindow.cpp
     ExportWindows.cpp
     InstrumentParameters.cpp
+    LicenseField.cpp
     MainWindow.cpp
     Mixer.cpp
     NameWindow.cpp
@@ -53,7 +55,8 @@ set_property(TARGET Hydrogen PROPERTY CXX_STANDARD 17)
 target_link_libraries(Hydrogen
     hydrogen-core-${VERSION}
     Qt${QT_VERSION_MAJOR}::Core
-    be tracker localestub
+    Qt${QT_VERSION_MAJOR}::Gui
+    be tracker translation localestub
 )
 add_dependencies(Hydrogen hydrogen-core-${VERSION})
 # BDecimalSpinner and BAboutWindow are only private headers on R1/beta6,
