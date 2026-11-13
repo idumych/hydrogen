@@ -62,6 +62,7 @@
 #include <core/Helpers/Filesystem.h>
 #include <core/Hydrogen.h>
 #include <core/IO/NullDriver.h>
+#include <core/Lilipond/Lilypond.h>
 #include <core/Preferences/Preferences.h>
 #include <core/SoundLibrary/SoundLibraryDatabase.h>
 
@@ -209,6 +210,7 @@ MainWindow::~MainWindow()
 	delete m_pOpenPanel;
 	delete m_pSavePanel;
 	delete m_pAutosaveRunner;
+	delete m_pLilyPondPanel;
 	delete m_pKitExportPanel;
 	delete m_pKitImportPanel;
 	delete m_pAfterSave;
@@ -236,7 +238,7 @@ BMenu* MainWindow::buildFileMenu()
 	pMenu->AddItem( new BMenuItem( B_TRANSLATE( "Export song" B_UTF8_ELLIPSIS ),
 								   new BMessage( kMsgExportSong ), 'E' ) );
 	pMenu->AddItem( new BMenuItem( B_TRANSLATE( "Export LilyPond file" B_UTF8_ELLIPSIS ),
-								   new BMessage( kMsgExportLilyPond ) ) );
+								   new BMessage( kMsgExportLilyPond ), 'L' ) );
 	pMenu->AddSeparatorItem();
 	pMenu->AddItem( new BMenuItem( B_TRANSLATE( "About Hydrogen" B_UTF8_ELLIPSIS ),
 								   new BMessage( B_ABOUT_REQUESTED ) ) );
@@ -246,8 +248,6 @@ BMenu* MainWindow::buildFileMenu()
 	pMenu->AddItem( new BMenuItem( B_TRANSLATE( "Quit" ), new BMessage( B_QUIT_REQUESTED ), 'Q' ) );
 
 	pMenu->FindItem( B_ABOUT_REQUESTED )->SetTarget( be_app );
-	// Not ported yet.
-	pMenu->FindItem( kMsgExportLilyPond )->SetEnabled( false );
 	return pMenu;
 }
 
@@ -886,6 +886,68 @@ void MainWindow::MessageReceived( BMessage* pMessage )
 		m_pPatternEditor->redrawNotes();
 		updateUndoItems();
 		break;
+	case kMsgExportLilyPond: {
+		auto pHydrogen = Hydrogen::get_instance();
+		const auto pSong = pHydrogen->getSong();
+		if ( pSong == nullptr ) {
+			break;
+		}
+		// Upstream's note before exporting.
+		BAlert* pAlert = new BAlert( B_TRANSLATE( "Export LilyPond file" ),
+			B_TRANSLATE( "The LilyPond export is experimental. It works best with the GMRockKit "
+						 "and without triplets." ),
+			B_TRANSLATE( "Cancel" ), B_TRANSLATE( "Continue" ), nullptr, B_WIDTH_AS_USUAL, B_INFO_ALERT );
+		pAlert->SetShortcut( 0, B_ESCAPE );
+		if ( pAlert->Go() != 1 ) {
+			break;
+		}
+		if ( m_pLilyPondPanel == nullptr ) {
+			m_pLilyPondPanel = new BFilePanel( B_SAVE_PANEL, new BMessenger( this ), nullptr, 0, false,
+											   new BMessage( kMsgExportLilyPondTo ) );
+			m_pLilyPondPanel->Window()->SetTitle( B_TRANSLATE( "Export LilyPond file" ) );
+		}
+		QString sDir = Preferences::get_instance()->getLastExportLilypondDirectory();
+		if ( ! Filesystem::dirWritable( sDir, true ) ) {
+			sDir = QDir::homePath();
+		}
+		m_pLilyPondPanel->SetPanelDirectory( toBString( sDir ).String() );
+		QString sName = pSong->getName().isEmpty() ? QString( "untitled" ) : pSong->getName();
+		m_pLilyPondPanel->SetSaveText( toBString( Filesystem::validateFilePath( sName ) + ".ly" ) );
+		m_pLilyPondPanel->Show();
+		break;
+	}
+	case kMsgExportLilyPondTo: {
+		entry_ref dir;
+		BString sName;
+		auto pHydrogen = Hydrogen::get_instance();
+		const auto pSong = pHydrogen->getSong();
+		if ( pSong == nullptr || pMessage->FindRef( "directory", &dir ) != B_OK ||
+			 pMessage->FindString( "name", &sName ) != B_OK ) {
+			break;
+		}
+		if ( ! sName.IEndsWith( ".ly" ) ) {
+			sName << ".ly";
+		}
+		BPath path( &dir );
+		path.Append( sName );
+		const QString sFile = toQString( path.Path() );
+		if ( pHydrogen->getAudioEngine()->getState() == AudioEngine::State::Playing ) {
+			pHydrogen->sequencerStop();
+		}
+		Preferences::get_instance()->setLastExportLilypondDirectory( QFileInfo( sFile ).absolutePath() );
+		QFile::remove( sFile );
+		LilyPond lilyPond;
+		lilyPond.extractData( *pSong );
+		lilyPond.write( sFile );
+		// write() doesn't report failure; the file tells.
+		if ( ! QFileInfo( sFile ).isFile() || QFileInfo( sFile ).size() == 0 ) {
+			BString sText( B_TRANSLATE( "The LilyPond file \"%file%\" couldn't be written." ) );
+			sText.ReplaceFirst( "%file%", path.Path() );
+			( new BAlert( B_TRANSLATE( "Export LilyPond file" ), sText, B_TRANSLATE( "OK" ), nullptr, nullptr,
+						  B_WIDTH_AS_USUAL, B_STOP_ALERT ) )->Go( nullptr );
+		}
+		break;
+	}
 	case kMsgKitNew: {
 		BAlert* pAlert = new BAlert( B_TRANSLATE( "Drumkit" ),
 									 B_TRANSLATE( "Replace the song's drumkit with an empty one?" ),

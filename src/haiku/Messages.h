@@ -38,6 +38,7 @@ enum : uint32 {
 	kMsgExportMidi = 'Hxmi',
 	kMsgExportSong = 'Hxsn',
 	kMsgExportLilyPond = 'Hxly',
+	kMsgExportLilyPondTo = 'Hxlt',
 	kMsgSettings = 'Hset',
 
 	// Pattern

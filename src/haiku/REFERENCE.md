@@ -267,6 +267,12 @@ Proposed differences from upstream (each can be vetoed):
    removing one removed all; removal used an erased iterator. Testing
    tool: h2midisend cc|note|pc NUMBER [VALUE] [CHANNEL].
 
+27. **Export LilyPond file** (File > Export LilyPond file…, Alt+L, like
+   upstream's Ctrl+L): upstream's "experimental" note as an alert with
+   Cancel/Continue, then a save panel (name from the song, ".ly" added),
+   stopping playback, as upstream; the core's LilyPond writer. It doesn't
+   report failure, so an empty or missing file is reported instead.
+
 ## Not yet captured
 
 Playlist editor, director, MIDI control dialog.

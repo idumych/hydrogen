@@ -105,6 +105,7 @@ private:
 	BMenu* m_pKitOpenMenu;
 	BFilePanel* m_pKitExportPanel = nullptr;
 	BMessageRunner* m_pAutosaveRunner = nullptr;
+	BFilePanel* m_pLilyPondPanel = nullptr;
 	int m_nAutosavesPerHour = -1;
 	/** The last autosave file written, removed when the song's name changes. */
 	QString m_sLastAutosave;
