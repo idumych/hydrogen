@@ -51,6 +51,7 @@
 #include <core/IO/OssDriver.h>
 #include <core/IO/PortAudioDriver.h>
 #include <core/IO/MediaKitDriver.h>
+#include <core/IO/MidiKitDriver.h>
 #include <core/IO/PortMidiDriver.h>
 #include <core/IO/PulseAudioDriver.h>
 #include <core/Midi/Midi.h>
@@ -1321,6 +1322,12 @@ void AudioEngine::startMidiDriver( Event::Trigger trigger ) {
 	else if ( pPref->m_midiDriver == Preferences::MidiDriver::CoreMidi ) {
 #ifdef H2CORE_HAVE_COREMIDI
 		m_pMidiDriver = std::make_shared<CoreMidiDriver>();
+		m_pMidiDriver->open();
+#endif
+	}
+	else if ( pPref->m_midiDriver == Preferences::MidiDriver::MidiKit ) {
+#ifdef H2CORE_HAVE_MIDIKIT
+		m_pMidiDriver = std::make_shared<MidiKitDriver>();
 		m_pMidiDriver->open();
 #endif
 	}

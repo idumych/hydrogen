@@ -225,7 +225,9 @@ Preferences::Preferences()
 				  << "http://hydrogen-music.org/feeds/index.json";
 
 	//___ MIDI Driver properties
-#if defined( H2CORE_HAVE_ALSA )
+#if defined( H2CORE_HAVE_MIDIKIT )
+	m_midiDriver = MidiDriver::MidiKit;
+#elif defined( H2CORE_HAVE_ALSA )
 	m_midiDriver = MidiDriver::Alsa;
 #elif defined( H2CORE_HAVE_PORTMIDI )
 	m_midiDriver = MidiDriver::PortMidi;
@@ -2044,6 +2046,9 @@ Preferences::MidiDriver Preferences::parseMidiDriver( const QString& sDriver )
 	else if ( s == "coremidi" ) {
 		return MidiDriver::CoreMidi;
 	}
+	else if ( s == "midi kit" || s == "midikit" ) {
+		return MidiDriver::MidiKit;
+	}
 	else {
 		// The LoopBack driver is only used in unit tests. Thus, it should not
 		// be written to disk and does not have to be parsed.
@@ -2070,6 +2075,8 @@ QString Preferences::midiDriverToQString( const Preferences::MidiDriver& driver
 			return "PortMidi";
 		case MidiDriver::LoopBack:
 			return "LoopBack";
+		case MidiDriver::MidiKit:
+			return "Midi Kit";
 		default:
 			return "Unhandled driver type";
 	}

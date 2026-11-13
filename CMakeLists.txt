@@ -121,6 +121,7 @@ if(APPLE)
 endif()
 if(HAIKU)
     option(WANT_MEDIAKIT    "Include Haiku Media Kit support" ON)
+    option(WANT_MIDIKIT     "Include Haiku Midi Kit support" ON)
 endif()
 
 option(WANT_APPIMAGE "Build Linux AppImage" OFF)
@@ -325,6 +326,9 @@ if(HAIKU)
     find_library(MEDIAKIT_LIBRARIES media)
     include(FindPackageHandleStandardArgs)
     find_package_handle_standard_args(MEDIAKIT DEFAULT_MSG MEDIAKIT_LIBRARIES MEDIAKIT_INCLUDE_DIRS)
+    find_path(MIDIKIT_INCLUDE_DIRS MidiRoster.h PATH_SUFFIXES os/midi2)
+    find_library(MIDIKIT_LIBRARIES midi2)
+    find_package_handle_standard_args(MIDIKIT DEFAULT_MSG MIDIKIT_LIBRARIES MIDIKIT_INCLUDE_DIRS)
 endif()
 find_helper(PORTAUDIO portaudio-2.0 portaudio.h portaudio)
 find_helper(PORTMIDI portmidi portmidi.h portmidi)
@@ -363,7 +367,7 @@ endif(DOXYGEN_FOUND)
 #
 # COMPUTE H2CORE_HAVE_xxx xxx_STATUS_REPORT
 #
-set(STATUS_LIST LIBSNDFILE LIBTAR LIBARCHIVE LADSPA ALSA OSS JACK OSC COREAUDIO COREMIDI MEDIAKIT PORTAUDIO PORTMIDI PULSEAUDIO LRDF RUBBERBAND CPPUNIT )
+set(STATUS_LIST LIBSNDFILE LIBTAR LIBARCHIVE LADSPA ALSA OSS JACK OSC COREAUDIO COREMIDI MEDIAKIT MIDIKIT PORTAUDIO PORTMIDI PULSEAUDIO LRDF RUBBERBAND CPPUNIT )
 foreach( _pkg ${STATUS_LIST})
     compute_pkgs_flags(${_pkg})
 endforeach()
@@ -484,6 +488,7 @@ color_message("${cyan}Supported audio interfaces${reset}
 * ${purple}CoreAudio${reset}                    : ${COREAUDIO_STATUS}
 * ${purple}CoreMidi${reset}                     : ${COREMIDI_STATUS}
 * ${purple}Media Kit${reset}                    : ${MEDIAKIT_STATUS}
+* ${purple}Midi Kit${reset}                     : ${MIDIKIT_STATUS}
 * ${purple}PortAudio${reset}                    : ${PORTAUDIO_STATUS}
 * ${purple}PortMidi${reset}                     : ${PORTMIDI_STATUS}
 * ${purple}PulseAudio${reset}                   : ${PULSEAUDIO_STATUS}\n"

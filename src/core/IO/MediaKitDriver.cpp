@@ -2,6 +2,7 @@
  * Hydrogen
  * Copyright(c) 2002-2008 by Alex >Comix< Cominu [comix@users.sourceforge.net]
  * Copyright(c) 2008-2026 The hydrogen development team [hydrogen-devel@lists.sourceforge.net]
+ * Haiku port: Copyright(c) 2026 idumych (https://github.com/idumych)
  *
  * http://www.hydrogen-music.org
  *

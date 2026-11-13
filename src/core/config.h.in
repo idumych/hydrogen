@@ -80,6 +80,10 @@
 #ifndef H2CORE_HAVE_PORTMIDI
 #cmakedefine H2CORE_HAVE_PORTMIDI
 #endif
+#ifndef H2CORE_HAVE_MIDIKIT
+#cmakedefine H2CORE_HAVE_MIDIKIT
+#endif
+
 #ifndef H2CORE_HAVE_MEDIAKIT
 #cmakedefine H2CORE_HAVE_MEDIAKIT
 #endif

@@ -152,7 +152,7 @@ class Preferences : public H2Core::Object<Preferences> {
 	static AudioDriver parseAudioDriver( const QString& sDriver );
 	static QString audioDriverToQString( const AudioDriver& driver );
 
-	enum class MidiDriver { Alsa, CoreMidi, Jack, None, PortMidi, LoopBack };
+	enum class MidiDriver { Alsa, CoreMidi, Jack, None, PortMidi, LoopBack, MidiKit };
 	static MidiDriver parseMidiDriver( const QString& sDriver );
 	static QString midiDriverToQString( const MidiDriver& driver );
 
