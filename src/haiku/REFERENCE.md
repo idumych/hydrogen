@@ -140,10 +140,9 @@ Proposed differences from upstream (each can be vetoed):
    section, drawn in the canvas colours. Differences: strip meters use the
    fader's full height (upstream's are only 20 px tall, which looks like a
    bug — it uses the fader's width), double-click sets a fader to unity
-   (1.0) instead of Ctrl+click setting the 1.5 maximum, and each effect
-   slot has a "Choose…" menu of the installed LADSPA plugins instead of
-   upstream's selector dialog. The plugin parameter window ("Edit"), the
-   mixer settings dialog (pan law) and MIDI learn aren't ported yet. On
+   (1.0) instead of Ctrl+click setting the 1.5 maximum. Each effect
+   slot's "Edit…" opens its effect window (item 23). The mixer settings
+   dialog (pan law) and MIDI learn aren't ported yet. On
    Haiku, LADSPA_PATH defaults to the system and user lib/ladspa folders.
 18. **Settings window** (File > Settings…, Alt+,; upstream's Preferences
    dialog): tabs General, Audio, MIDI, Appearance. Settings apply as they
@@ -195,6 +194,18 @@ Proposed differences from upstream (each can be vetoed):
    nothing, "Off" was ignored at a length of 4 beats, spinners of pushed
    markers went stale, and switching Rubberband on also transposed by the
    core's default 1 semitone. Not ported: editing the playback track.
+
+23. **Effect window** (Edit… on a mixer effect slot; upstream's LADSPA FX
+   properties): a "Plugin:" menu of the installed LADSPA plugins by name
+   ("No plugin" removes it; replaces upstream's selector dialog with its
+   plugin groups and its Remove button), an "Active" check box (upstream's
+   Activate/Deactivate button), the plugin's label and library, a fader
+   per input control port with its value (integer ports snap,
+   double-click restores the plugin's default, arrow keys step), a check
+   box for toggle ports (upstream left them as faders, "not implemented
+   yet"), and a meter per output port, polled every 100 ms. One window
+   per slot, sized to its controls up to the screen width, remembering
+   its frame; it follows changes made elsewhere (another song, Bypass).
 
 ## Not yet captured
 

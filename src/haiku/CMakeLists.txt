@@ -30,6 +30,7 @@ add_executable(Hydrogen
     Colors.cpp
     ComponentEditor.cpp
     Controls.cpp
+    EffectWindow.cpp
     ExportWindows.cpp
     InstrumentParameters.cpp
     MainWindow.cpp

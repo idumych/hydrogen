@@ -52,6 +52,7 @@
 
 #include "Colors.h"
 #include "Controls.h"
+#include "EffectWindow.h"
 #include "Settings.h"
 #include "TransportBar.h"
 
@@ -66,7 +67,7 @@ enum : uint32 {
 	kMsgVolume = 'MXvo', kMsgSelect = 'MXse',
 	kMsgMasterVolume = 'MXmv', kMsgMasterMute = 'MXmm', kMsgHumanizeVelocity = 'MXhv',
 	kMsgHumanizeTime = 'MXht', kMsgSwing = 'MXsw', kMsgShowFX = 'MXsf', kMsgShowPeaks = 'MXsp',
-	kMsgBypass = 'MXby', kMsgChooseFX = 'MXcf', kMsgSetFX = 'MXsx', kMsgReturn = 'MXre',
+	kMsgBypass = 'MXby', kMsgChooseFX = 'MXcf', kMsgReturn = 'MXre',
 };
 
 static const float kStripWidth = 56;
@@ -546,7 +547,7 @@ public:
 			m_pBypass[ i ]->MoveTo( 22, y + 25 );
 			BMessage* pChoose = new BMessage( kMsgChooseFX );
 			pChoose->AddInt32( "fx", i );
-			m_pChoose[ i ] = new TagButton( B_TRANSLATE( "Choose" B_UTF8_ELLIPSIS ), pChoose, c.button,
+			m_pChoose[ i ] = new TagButton( B_TRANSLATE( "Edit" B_UTF8_ELLIPSIS ), pChoose, c.button,
 											c.buttonText, BSize( 62, 14 ) );
 			AddChild( m_pChoose[ i ] );
 			m_pChoose[ i ]->MoveTo( 72, y + 25 );
@@ -997,64 +998,10 @@ void MixerWindow::MessageReceived( BMessage* pMessage )
 		break;
 	}
 	case kMsgChooseFX: {
-		// A menu of the installed LADSPA plugins (upstream's selector is
-		// a dialog with plugin groups; this lists them by name).
+		// Upstream's "Edit" button: the slot's window, with the plugin menu.
 		int32 nFX = 0;
 		pMessage->FindInt32( "fx", &nFX );
-		if ( pSong == nullptr ) {
-			break;
-		}
-		BPopUpMenu* pMenu = new BPopUpMenu( "plugins", false, false );
-		pMenu->SetAsyncAutoDestruct( true );
-		BMessage* pNone = new BMessage( kMsgSetFX );
-		pNone->AddInt32( "fx", nFX );
-		pMenu->AddItem( new BMenuItem( B_TRANSLATE( "No plugin" ), pNone ) );
-		pMenu->AddSeparatorItem();
-		auto plugins = pSong->getEffects()->getPluginList();
-		std::sort( plugins.begin(), plugins.end(), []( const auto& a, const auto& b ) {
-			return a->m_sName.compare( b->m_sName, Qt::CaseInsensitive ) < 0;
-		} );
-		for ( const auto& pInfo : plugins ) {
-			BMessage* pSet = new BMessage( kMsgSetFX );
-			pSet->AddInt32( "fx", nFX );
-			pSet->AddString( "file", toBString( pInfo->m_sFileName ) );
-			pSet->AddString( "label", toBString( pInfo->m_sLabel ) );
-			pMenu->AddItem( new BMenuItem( toBString( pInfo->m_sName ), pSet ) );
-		}
-		if ( plugins.empty() ) {
-			BMenuItem* pEmpty = new BMenuItem( B_TRANSLATE( "No LADSPA plugins found" ), nullptr );
-			pEmpty->SetEnabled( false );
-			pMenu->AddItem( pEmpty );
-		}
-		pMenu->SetTargetForItems( this );
-		BPoint where;
-		uint32 nButtons;
-		m_pFX->GetMouse( &where, &nButtons, false );
-		pMenu->Go( m_pFX->ConvertToScreen( where ), true, false, true );
-		break;
-	}
-	case kMsgSetFX: {
-		// Upstream's LadspaFXProperties::selectFXBtnClicked().
-		int32 nFX = 0;
-		pMessage->FindInt32( "fx", &nFX );
-		BString sFile, sLabel;
-		std::shared_ptr<LadspaFX> pFX;
-		auto pDriver = pHydrogen->getAudioDriver();
-		if ( pSong == nullptr ) {
-			break;
-		}
-		if ( pMessage->FindString( "file", &sFile ) == B_OK &&
-			 pMessage->FindString( "label", &sLabel ) == B_OK && pDriver != nullptr ) {
-			pFX = LadspaFX::load( QString::fromUtf8( sFile.String() ), QString::fromUtf8( sLabel.String() ),
-								  pDriver->getSampleRate() );
-			if ( pFX != nullptr ) {
-				pFX->setEnabled( true );
-			}
-		}
-		pSong->getEffects()->setLadspaFX( pFX, nFX );
-		pHydrogen->setSongModified( true );
-		pHydrogen->restartLadspaFX();
-		m_pFX->update();
+		EffectWindow::open( nFX, BMessenger( this ) );
 		break;
 	}
 #endif
