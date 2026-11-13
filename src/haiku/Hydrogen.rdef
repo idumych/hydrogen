@@ -1,0 +1,22 @@
+/*
+ * Hydrogen, Copyright(c) 2008-2026 The hydrogen development team. GPL-2.0-or-later.
+ * Haiku port: Copyright(c) 2026 idumych (https://github.com/idumych)
+ */
+
+// Same signature as HaikuPorts' Qt build, so existing associations carry over.
+resource app_signature "application/x-vnd.hydrogen";
+
+// One audio engine at a time; songs opened later go to the running instance.
+resource app_flags B_SINGLE_LAUNCH;
+
+resource app_version {
+	major  = 2,
+	middle = 0,
+	minor  = 0,
+
+	variety = B_APPV_DEVELOPMENT,
+	internal = 0,
+
+	short_info = "Hydrogen",
+	long_info = "Hydrogen, an advanced drum machine. ©2002-2026 The hydrogen development team."
+};

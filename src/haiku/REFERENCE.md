@@ -84,7 +84,10 @@ Proposed differences from upstream (each can be vetoed):
    (reserved for Replace and find), Automation path becomes Alt+Shift+A
    (Alt+A is Select all), Full screen becomes Alt+Shift+F (Alt+F is Find).
 7. **Settings** are stored in `~/config/settings/Hydrogen/` instead of
-   `~/.config/hydrogen/`.
+   `~/.config/hydrogen/`, and user data (songs, kits, patterns, playlists) in
+   its `data` folder instead of `~/.local/share/hydrogen/` (`~/config/data`
+   is part of the read-only package tree). The log goes to
+   `~/config/var/log/Hydrogen.log`.
 8. **Remembered window frames** for the main window, mixer and other panels.
 
 ## Not yet captured
