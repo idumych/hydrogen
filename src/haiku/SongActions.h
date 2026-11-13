@@ -27,6 +27,11 @@
 
 #include <String.h>
 
+#include <QString>
+#include <QStringList>
+
+#include <core/License.h>
+
 namespace H2Core {
 	class Instrument;
 };
@@ -64,6 +69,19 @@ namespace SongActions
 	/** Renames component @a nComponent of the selected instrument. */
 	std::unique_ptr<UndoCommand> renameComponent( int nComponent, const BString& sOld,
 												  const BString& sNew );
+	/** What the properties window edits, for songs and patterns alike. */
+	struct Properties {
+		QString sPath;
+		int nVersion = 0;
+		QString sName, sAuthor, sNotes;
+		H2Core::License license;
+		QStringList tags;
+	};
+	Properties songProperties();
+	Properties patternProperties( int nPattern );
+	/** Upstream's SE_modifySongPropertiesAction / SE_modifyPatternPropertiesAction. */
+	std::unique_ptr<UndoCommand> setSongProperties( const Properties& properties );
+	std::unique_ptr<UndoCommand> setPatternProperties( int nPattern, const Properties& properties );
 	/** Appends the pattern file at @a sPath to the song (SE_insertPatternAction). */
 	std::unique_ptr<UndoCommand> appendPattern( const BString& sPath );
 };

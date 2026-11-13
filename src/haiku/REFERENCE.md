@@ -157,8 +157,27 @@ Proposed differences from upstream (each can be vetoed):
    editing (the system look covers them), JACK/PortAudio/OSC options (not
    built on Haiku), autosave and the beat counter (not ported yet). The
    MIDI action table (MIDI learn) isn't ported yet.
+19. **Properties window** (File > Song properties…, Pattern > Properties…
+   and "Properties…" in the pattern list's menu; upstream's song and
+   pattern properties dialogs): name, version, author, licence menu with
+   the licence text, notes, tags (comma-separated) and the file. Apply
+   changes them as one undoable step; a pattern name that's taken gets a
+   number, as upstream. The licence text is hidden for "Unspecified".
+20. **Export song** (File > Export song…, Alt+E): file and Choose…, format
+   (only those the core was built with), sample rate and depth for
+   uncompressed formats, compression for FLAC/Opus/Ogg/MP3, export to a
+   single track, separate tracks ("song-Kick.flac" …, instruments without
+   notes skipped) or both, resampling, timeline tempo and Rubberband
+   options, a progress bar. Each export is its own core export session,
+   ended when it's done, so the audio driver comes back between exports;
+   Close is disabled while writing (the DiskWriter can't be interrupted).
+   Fixed from upstream: its progress bar never moved (min instead of max)
+   and a second export in the same dialog left the song in song mode.
+   Left out: the licence summary shown before exporting.
+21. **Export MIDI file** (File > Export MIDI file…, Alt+M): file, SMF
+   format (SMF1 one track, SMF1 one track per instrument, SMF0) and
+   humanization; lists any time signatures that had to be changed.
 
 ## Not yet captured
 
-Rack Comp./Library tabs, playlist editor, director, sample editor, song and
-pattern properties, export dialogs, MIDI control dialog, About.
+Playlist editor, director, sample editor, MIDI control dialog.

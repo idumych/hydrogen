@@ -30,12 +30,14 @@ add_executable(Hydrogen
     Colors.cpp
     ComponentEditor.cpp
     Controls.cpp
+    ExportWindows.cpp
     InstrumentParameters.cpp
     MainWindow.cpp
     Mixer.cpp
     NameWindow.cpp
     PatternActions.cpp
     PatternEditor.cpp
+    PropertiesWindow.cpp
     Rack.cpp
     Settings.cpp
     SettingsWindow.cpp

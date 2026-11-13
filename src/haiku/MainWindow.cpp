@@ -35,6 +35,7 @@
 #include <MessageRunner.h>
 #include <Path.h>
 #include <Screen.h>
+#include <SeparatorItem.h>
 #include <SplitView.h>
 #include <Url.h>
 
@@ -47,6 +48,7 @@
 #include <core/AudioEngine/AudioEngine.h>
 #include <core/AudioEngine/Transport.h>
 #include <core/Basics/Event.h>
+#include <core/Basics/PatternList.h>
 #include <core/Basics/Song.h>
 #include <core/CoreActionController.h>
 #include <core/EventQueue.h>
@@ -56,14 +58,17 @@
 #include <core/Preferences/Preferences.h>
 
 #include "Colors.h"
+#include "ExportWindows.h"
 #include "Messages.h"
-#include "PatternActions.h"
 #include "Mixer.h"
+#include "PatternActions.h"
 #include "PatternEditor.h"
+#include "PropertiesWindow.h"
 #include "Rack.h"
-#include "SongEditor.h"
 #include "Settings.h"
 #include "SettingsWindow.h"
+#include "SongActions.h"
+#include "SongEditor.h"
 #include "TransportBar.h"
 #include "UndoStack.h"
 
@@ -217,10 +222,7 @@ BMenu* MainWindow::buildFileMenu()
 
 	pMenu->FindItem( B_ABOUT_REQUESTED )->SetTarget( be_app );
 	// Not ported yet.
-	for ( uint32 what : { kMsgSongProperties, kMsgExportMidi, kMsgExportSong,
-						  kMsgExportLilyPond } ) {
-		pMenu->FindItem( what )->SetEnabled( false );
-	}
+	pMenu->FindItem( kMsgExportLilyPond )->SetEnabled( false );
 	return pMenu;
 }
 
@@ -257,12 +259,26 @@ static BMenu* disabledMenu( const char* sName, std::initializer_list<const char*
 
 BMenu* MainWindow::buildPatternMenu()
 {
-	// Not ported yet; the items show what's coming.
-	return disabledMenu( B_TRANSLATE( "Pattern" ), {
-		B_TRANSLATE( "New" B_UTF8_ELLIPSIS ), B_TRANSLATE( "Open" B_UTF8_ELLIPSIS ), nullptr,
-		B_TRANSLATE( "Properties" B_UTF8_ELLIPSIS ), nullptr, B_TRANSLATE( "Save" ),
-		B_TRANSLATE( "Save as" B_UTF8_ELLIPSIS ), nullptr, B_TRANSLATE( "Duplicate" ),
-		nullptr, B_TRANSLATE( "Online import" B_UTF8_ELLIPSIS ) } );
+	BMenu* pMenu = new BMenu( B_TRANSLATE( "Pattern" ) );
+	pMenu->AddItem( new BMenuItem( B_TRANSLATE( "New" ), new BMessage( kMsgPatternNew ) ) );
+	pMenu->AddItem( new BMenuItem( B_TRANSLATE( "Open" B_UTF8_ELLIPSIS ), nullptr ) );
+	pMenu->AddSeparatorItem();
+	pMenu->AddItem( new BMenuItem( B_TRANSLATE( "Properties" B_UTF8_ELLIPSIS ),
+								   new BMessage( kMsgPatternProperties ) ) );
+	pMenu->AddSeparatorItem();
+	pMenu->AddItem( new BMenuItem( B_TRANSLATE( "Save" ), nullptr ) );
+	pMenu->AddItem( new BMenuItem( B_TRANSLATE( "Save as" B_UTF8_ELLIPSIS ), nullptr ) );
+	pMenu->AddSeparatorItem();
+	pMenu->AddItem( new BMenuItem( B_TRANSLATE( "Duplicate" ), new BMessage( kMsgPatternDuplicate ) ) );
+	pMenu->AddSeparatorItem();
+	pMenu->AddItem( new BMenuItem( B_TRANSLATE( "Online import" B_UTF8_ELLIPSIS ), nullptr ) );
+	// Not ported yet: the items without a message.
+	for ( int32 i = 0; BMenuItem* pItem = pMenu->ItemAt( i ); i++ ) {
+		if ( pItem->Message() == nullptr && dynamic_cast<BSeparatorItem*>( pItem ) == nullptr ) {
+			pItem->SetEnabled( false );
+		}
+	}
+	return pMenu;
 }
 
 BMenu* MainWindow::buildDrumkitMenu()
@@ -469,6 +485,12 @@ void MainWindow::pollCore()
 		case Event::Type::Quit:
 			PostMessage( B_QUIT_REQUESTED );
 			break;
+		case Event::Type::AudioExportProgress: {
+			BMessage progress( kMsgExportProgress );
+			progress.AddInt32( "value", pEvent->getValue() );
+			m_exportSong.SendMessage( &progress );
+			break;
+		}
 		default:
 			// Everything else lands in an editor that isn't ported yet.
 			break;
@@ -608,6 +630,50 @@ void MainWindow::MessageReceived( BMessage* pMessage )
 		m_pPatternEditor->redrawNotes();
 		updateUndoItems();
 		break;
+	case kMsgSongProperties:
+		( new PropertiesWindow( -1, Frame(), BMessenger( this ) ) )->Show();
+		break;
+	case kMsgPatternNew:
+		UndoStack::get().push( SongActions::newPattern() );
+		updateUndoItems();
+		break;
+	case kMsgPatternProperties:
+	case kMsgPatternDuplicate: {
+		const int nPattern = Hydrogen::get_instance()->getSelectedPatternNumber();
+		const auto pSong = Hydrogen::get_instance()->getSong();
+		if ( pSong == nullptr || nPattern < 0 || nPattern >= pSong->getPatternList()->size() ) {
+			break;
+		}
+		if ( pMessage->what == kMsgPatternProperties ) {
+			( new PropertiesWindow( nPattern, Frame(), BMessenger( this ) ) )->Show();
+		}
+		else if ( auto pCommand = SongActions::duplicatePattern( nPattern ) ) {
+			UndoStack::get().push( std::move( pCommand ) );
+			updateUndoItems();
+		}
+		break;
+	}
+	case kMsgExportSong:
+	case kMsgExportMidi: {
+		BMessenger& messenger = pMessage->what == kMsgExportSong ? m_exportSong : m_exportMidi;
+		// One of each; bring it forward if it is open.
+		if ( messenger.LockTarget() ) {
+			BLooper* pLooper = nullptr;
+			messenger.Target( &pLooper );
+			BWindow* pOpen = dynamic_cast<BWindow*>( pLooper );
+			if ( pOpen != nullptr ) {
+				pOpen->Activate();
+			}
+			pLooper->Unlock();
+			break;
+		}
+		BWindow* pWindow = pMessage->what == kMsgExportSong
+							   ? static_cast<BWindow*>( new ExportSongWindow( Frame() ) )
+							   : static_cast<BWindow*>( new ExportMidiWindow( Frame() ) );
+		messenger = BMessenger( pWindow );
+		pWindow->Show();
+		break;
+	}
 	case kMsgSettings:
 		// One settings window; bring it forward if it is open.
 		if ( m_settings.IsValid() ) {

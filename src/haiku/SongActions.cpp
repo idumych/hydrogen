@@ -342,4 +342,72 @@ std::unique_ptr<UndoCommand> appendPattern( const BString& sPath )
 											pSong->getPatternList()->size(), pPattern );
 }
 
+Properties songProperties()
+{
+	Properties p;
+	if ( auto pSong = song() ) {
+		p.sPath = pSong->getPath();
+		p.nVersion = pSong->getVersion();
+		p.sName = pSong->getName();
+		p.sAuthor = pSong->getAuthor();
+		p.sNotes = pSong->getNotes();
+		p.license = pSong->getLicense();
+		p.tags = pSong->getTags();
+	}
+	return p;
+}
+
+Properties patternProperties( int nPattern )
+{
+	Properties p;
+	if ( auto pPattern = patternAt( nPattern ) ) {
+		p.sPath = pPattern->getPath();
+		p.nVersion = pPattern->getVersion();
+		p.sName = pPattern->getName();
+		p.sAuthor = pPattern->getAuthor();
+		p.sNotes = pPattern->getInfo();
+		p.license = pPattern->getLicense();
+		p.tags = pPattern->getTags();
+	}
+	return p;
+}
+
+class PropertiesCommand : public UndoCommand
+{
+public:
+	PropertiesCommand( const char* sName, int nPattern, const Properties& oldValues, const Properties& newValues )
+		: UndoCommand( sName ), m_nPattern( nPattern ), m_old( oldValues ), m_new( newValues ) {}
+
+	void redo() override { apply( m_new ); }
+	void undo() override { apply( m_old ); }
+
+private:
+	void apply( const Properties& p )
+	{
+		if ( m_nPattern < 0 ) {
+			CoreActionController::setSongProperties( p.sPath, p.nVersion, p.sName, p.sAuthor, p.sNotes,
+													 p.license, p.tags );
+		}
+		else {
+			CoreActionController::setPatternProperties( p.sPath, p.nVersion, p.sName, p.sAuthor, p.sNotes,
+														p.license, p.tags, m_nPattern );
+		}
+	}
+
+	int m_nPattern;
+	Properties m_old, m_new;
+};
+
+std::unique_ptr<UndoCommand> setSongProperties( const Properties& properties )
+{
+	return std::make_unique<PropertiesCommand>( B_TRANSLATE( "change song properties" ), -1,
+												songProperties(), properties );
+}
+
+std::unique_ptr<UndoCommand> setPatternProperties( int nPattern, const Properties& properties )
+{
+	return std::make_unique<PropertiesCommand>( B_TRANSLATE( "change pattern properties" ), nPattern,
+												patternProperties( nPattern ), properties );
+}
+
 };

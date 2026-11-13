@@ -88,6 +88,8 @@ private:
 	BMenuItem* m_pMixerItem;
 	BMenuItem* m_pRackItem;
 	BMessenger m_settings;
+	BMessenger m_exportSong;
+	BMessenger m_exportMidi;
 	BSplitView* m_pSplitView;
 	BMenu* m_pRecentMenu;
 	BMenuItem* m_pUndoItem;

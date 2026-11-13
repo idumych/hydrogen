@@ -40,6 +40,11 @@ enum : uint32 {
 	kMsgExportLilyPond = 'Hxly',
 	kMsgSettings = 'Hset',
 
+	// Pattern
+	kMsgPatternNew = 'Hpnw',
+	kMsgPatternProperties = 'Hppr',
+	kMsgPatternDuplicate = 'Hpdu',
+
 	// Edit
 	kMsgUndo = 'Hund',
 	kMsgRedo = 'Hred',

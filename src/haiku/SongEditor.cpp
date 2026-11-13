@@ -46,6 +46,7 @@
 
 #include "Colors.h"
 #include "NameWindow.h"
+#include "PropertiesWindow.h"
 #include "SongActions.h"
 #include "TransportBar.h"
 #include "UndoStack.h"
@@ -61,6 +62,7 @@ enum : uint32 {
 	kMsgRenamePattern = 'SErp',
 	kMsgDoRename = 'SErn',
 	kMsgDeletePattern = 'SEdl',
+	kMsgPatternProperties = 'SEpp',
 	kMsgClearSequence = 'SEcl',
 	kMsgSelectedMode = 'SEsm',
 	kMsgStackedMode = 'SEst',
@@ -297,6 +299,8 @@ private:
 		pMenu->AddItem( new BMenuItem( B_TRANSLATE( "Duplicate" ), rowMessage( kMsgDuplicatePattern ) ) );
 		pMenu->AddItem( new BMenuItem( B_TRANSLATE( "Rename" B_UTF8_ELLIPSIS ),
 									   rowMessage( kMsgRenamePattern ) ) );
+		pMenu->AddItem( new BMenuItem( B_TRANSLATE( "Properties" B_UTF8_ELLIPSIS ),
+									   rowMessage( kMsgPatternProperties ) ) );
 		pMenu->AddSeparatorItem();
 		pMenu->AddItem( new BMenuItem( B_TRANSLATE( "Delete" ), rowMessage( kMsgDeletePattern ) ) );
 		pMenu->SetTargetForItems( m_pEditor );
@@ -784,6 +788,9 @@ void SongEditor::MessageReceived( BMessage* pMessage )
 		break;
 	case kMsgRenamePattern:
 		renamePattern( nRow );
+		break;
+	case kMsgPatternProperties:
+		( new PropertiesWindow( nRow, Window()->Frame(), BMessenger( Window() ) ) )->Show();
 		break;
 	case kMsgDoRename: {
 		BString sName;
