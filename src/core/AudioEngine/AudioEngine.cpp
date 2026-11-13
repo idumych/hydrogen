@@ -50,6 +50,7 @@
 #include <core/IO/NullDriver.h>
 #include <core/IO/OssDriver.h>
 #include <core/IO/PortAudioDriver.h>
+#include <core/IO/MediaKitDriver.h>
 #include <core/IO/PortMidiDriver.h>
 #include <core/IO/PulseAudioDriver.h>
 #include <core/Midi/Midi.h>
@@ -1039,6 +1040,10 @@ std::shared_ptr<AudioDriver> AudioEngine::createAudioDriver(
 	else if ( driver == Preferences::AudioDriver::CoreAudio ) {
 		pAudioDriver =
 			std::make_shared<CoreAudioDriver>( m_AudioProcessCallback );
+	}
+	else if ( driver == Preferences::AudioDriver::MediaKit ) {
+		pAudioDriver =
+			std::make_shared<MediaKitDriver>( m_AudioProcessCallback );
 	}
 	else if ( driver == Preferences::AudioDriver::PulseAudio ) {
 		pAudioDriver =
@@ -3602,6 +3607,10 @@ QString AudioEngine::getDriverNames() const {
 	else if ( std::dynamic_pointer_cast<CoreAudioDriver>( m_pAudioDriver ) !=
 			  nullptr ) {
 		audioDriver = Preferences::AudioDriver::CoreAudio;
+	}
+	else if ( std::dynamic_pointer_cast<MediaKitDriver>( m_pAudioDriver ) !=
+			  nullptr ) {
+		audioDriver = Preferences::AudioDriver::MediaKit;
 	}
 	else if ( std::dynamic_pointer_cast<PulseAudioDriver>( m_pAudioDriver ) !=
 			  nullptr ) {

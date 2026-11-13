@@ -119,6 +119,9 @@ if(APPLE)
     option(WANT_COREMIDI    "Include CoreMidi support" ON)
     option(WANT_BUNDLE      "Build a MAC OSX bundle application" ON)
 endif()
+if(HAIKU)
+    option(WANT_MEDIAKIT    "Include Haiku Media Kit support" ON)
+endif()
 
 option(WANT_APPIMAGE "Build Linux AppImage" OFF)
 
@@ -317,6 +320,12 @@ if(APPLE)
     find_helper(COREAUDIO CoreAudio-2.0 CoreAudio.h CoreAudio)
     find_helper(COREMIDI CoreMidi CoreMIDI.h CoreMIDI)
 endif()
+if(HAIKU)
+    find_path(MEDIAKIT_INCLUDE_DIRS SoundPlayer.h PATH_SUFFIXES os/media)
+    find_library(MEDIAKIT_LIBRARIES media)
+    include(FindPackageHandleStandardArgs)
+    find_package_handle_standard_args(MEDIAKIT DEFAULT_MSG MEDIAKIT_LIBRARIES MEDIAKIT_INCLUDE_DIRS)
+endif()
 find_helper(PORTAUDIO portaudio-2.0 portaudio.h portaudio)
 find_helper(PORTMIDI portmidi portmidi.h portmidi)
 if ("${PC_PORTMIDI_VERSION}" STREQUAL "" AND WANT_PORTMIDI AND PORTMIDI_FOUND)
@@ -354,7 +363,7 @@ endif(DOXYGEN_FOUND)
 #
 # COMPUTE H2CORE_HAVE_xxx xxx_STATUS_REPORT
 #
-set(STATUS_LIST LIBSNDFILE LIBTAR LIBARCHIVE LADSPA ALSA OSS JACK OSC COREAUDIO COREMIDI PORTAUDIO PORTMIDI PULSEAUDIO LRDF RUBBERBAND CPPUNIT )
+set(STATUS_LIST LIBSNDFILE LIBTAR LIBARCHIVE LADSPA ALSA OSS JACK OSC COREAUDIO COREMIDI MEDIAKIT PORTAUDIO PORTMIDI PULSEAUDIO LRDF RUBBERBAND CPPUNIT )
 foreach( _pkg ${STATUS_LIST})
     compute_pkgs_flags(${_pkg})
 endforeach()
@@ -474,6 +483,7 @@ color_message("${cyan}Supported audio interfaces${reset}
 * ${purple}OSC${reset}                          : ${OSC_STATUS}
 * ${purple}CoreAudio${reset}                    : ${COREAUDIO_STATUS}
 * ${purple}CoreMidi${reset}                     : ${COREMIDI_STATUS}
+* ${purple}Media Kit${reset}                    : ${MEDIAKIT_STATUS}
 * ${purple}PortAudio${reset}                    : ${PORTAUDIO_STATUS}
 * ${purple}PortMidi${reset}                     : ${PORTMIDI_STATUS}
 * ${purple}PulseAudio${reset}                   : ${PULSEAUDIO_STATUS}\n"
@@ -534,6 +544,9 @@ add_subdirectory(data/i18n)
 add_subdirectory(src/cli)
 add_subdirectory(src/player)
 add_subdirectory(src/gui)
+if(HAIKU)
+	add_subdirectory(src/haiku)
+endif()
 if(EXISTS ${CMAKE_SOURCE_DIR}/data/doc/CMakeLists.txt)
 	add_subdirectory(data/doc)
 else()

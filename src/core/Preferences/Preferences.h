@@ -146,7 +146,8 @@ class Preferences : public H2Core::Object<Preferences> {
 		Alsa,
 		PulseAudio,
 		CoreAudio,
-		PortAudio
+		PortAudio,
+		MediaKit
 	};
 	static AudioDriver parseAudioDriver( const QString& sDriver );
 	static QString audioDriverToQString( const AudioDriver& driver );

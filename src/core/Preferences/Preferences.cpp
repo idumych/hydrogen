@@ -1982,6 +1982,9 @@ Preferences::AudioDriver Preferences::parseAudioDriver( const QString& sDriver )
 	else if ( s == "portaudio" || s == "port" ) {
 		return AudioDriver::PortAudio;
 	}
+	else if ( s == "mediakit" || s == "media kit" || s == "haiku" ) {
+		return AudioDriver::MediaKit;
+	}
 	else {
 		if ( Logger::isAvailable() ) {
 			ERRORLOG( QString( "Unable to parse driver [%1]" ).arg( sDriver ) );
@@ -2009,6 +2012,8 @@ QString Preferences::audioDriverToQString(
 			return "CoreAudio";
 		case AudioDriver::PortAudio:
 			return "PortAudio";
+		case AudioDriver::MediaKit:
+			return "Media Kit";
 		case AudioDriver::Disk:
 			return "Disk";
 		case AudioDriver::Fake:
@@ -2184,6 +2189,16 @@ std::vector<Preferences::AudioDriver> Preferences::getSupportedAudioDrivers()
 	if ( bJackSupported ) {
 		drivers.push_back( AudioDriver::Jack );
 	}
+#elif defined( __HAIKU__ )
+#ifdef H2CORE_HAVE_MEDIAKIT
+	drivers.push_back( AudioDriver::MediaKit );
+#endif
+	if ( bJackSupported ) {
+		drivers.push_back( AudioDriver::Jack );
+	}
+#ifdef H2CORE_HAVE_PORTAUDIO
+	drivers.push_back( AudioDriver::PortAudio );
+#endif
 #elif defined( __APPLE__ )
 #ifdef H2CORE_HAVE_COREAUDIO
 	drivers.push_back( AudioDriver::CoreAudio );
