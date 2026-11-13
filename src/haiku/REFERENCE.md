@@ -178,6 +178,24 @@ Proposed differences from upstream (each can be vetoed):
    format (SMF1 one track, SMF1 one track per instrument, SMF0) and
    humanization; lists any time signatures that had to be changed.
 
+22. **Sample editor** (double-click a layer's waveform in the Components
+   tab, as upstream): the file's two channels with start, loop and end
+   markers (drag the lines or their S/L/E tabs; moving one pushes the
+   others along), a one-frame-per-pixel detail view with zoom, start /
+   loop / end / mode / loop count fields, Rubberband length in beats,
+   pitch and crispness (shown only when librubberband or the rubberband
+   tool is there), and the result with its volume and pan envelopes
+   (click adds a point, right-click removes one, end points move only up
+   and down). Edits are rendered at once; Play and Play original preview
+   with a moving playhead; Apply replaces the instrument as one undoable
+   step, Revert goes back, closing with changes asks. Differences: the
+   editor isn't modal and has no undo steps of its own (Revert instead);
+   it follows undo in the main window when it has no changes; it
+   remembers its frame. Fixed from upstream: the crispness menu did
+   nothing, "Off" was ignored at a length of 4 beats, spinners of pushed
+   markers went stale, and switching Rubberband on also transposed by the
+   core's default 1 semitone. Not ported: editing the playback track.
+
 ## Not yet captured
 
-Playlist editor, director, sample editor, MIDI control dialog.
+Playlist editor, director, MIDI control dialog.

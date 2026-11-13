@@ -57,6 +57,7 @@
 #include "Colors.h"
 #include "Controls.h"
 #include "NameWindow.h"
+#include "SampleEditor.h"
 #include "SongActions.h"
 #include "TransportBar.h"
 #include "UndoStack.h"
@@ -210,6 +211,7 @@ public:
 		auto pInstrument = instrument();
 		return pInstrument != nullptr ? pInstrument->getComponent( m_nIndex ) : nullptr;
 	}
+	int index() const { return m_nIndex; }
 	int selectedLayer() const { return m_pEditor->m_selectedLayer[ m_nIndex ]; }
 	void selectLayer( int nLayer )
 	{
@@ -376,6 +378,7 @@ ComponentPanel::ComponentPanel( ComponentEditor* pEditor, int nIndex )
 		m_pSelection->SetToolTip( B_TRANSLATE( "Which layer plays for a note" ) );
 
 		m_pWave = new WaveView( this );
+		m_pWave->SetToolTip( B_TRANSLATE( "Double-click to edit the sample" ) );
 		m_pPitchValue = new BStringView( "pitch", "0.00" );
 		m_pPitchValue->SetFont( be_fixed_font );
 		m_pCoarse = new Knob( "layer coarse", new BMessage( kMsgCoarse ),
@@ -1021,10 +1024,17 @@ void WaveView::MouseDown( BPoint )
 	if ( Window()->CurrentMessage() != nullptr ) {
 		Window()->CurrentMessage()->FindInt32( "clicks", &nClicks );
 	}
-	// Upstream opens the sample editor (not ported yet); with no layer,
-	// double-click adds one.
-	if ( nClicks == 2 && m_pPanel->layer() == nullptr ) {
+	// As upstream: double-click edits the sample, or adds a layer if
+	// there's none.
+	if ( nClicks != 2 ) {
+		return;
+	}
+	if ( m_pPanel->layer() == nullptr ) {
 		m_pPanel->chooseSamples( SampleAction::AddLayer );
+	}
+	else if ( m_pPanel->layer()->getSample() != nullptr ) {
+		SampleEditorWindow::open( m_pPanel->index(), m_pPanel->selectedLayer(), Window()->Frame(),
+								  BMessenger( Window() ) );
 	}
 }
 

@@ -39,6 +39,7 @@ add_executable(Hydrogen
     PatternEditor.cpp
     PropertiesWindow.cpp
     Rack.cpp
+    SampleEditor.cpp
     Settings.cpp
     SettingsWindow.cpp
     SongActions.cpp
