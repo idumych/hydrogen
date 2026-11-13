@@ -63,6 +63,7 @@
 #include "Rack.h"
 #include "SongEditor.h"
 #include "Settings.h"
+#include "SettingsWindow.h"
 #include "TransportBar.h"
 #include "UndoStack.h"
 
@@ -217,7 +218,7 @@ BMenu* MainWindow::buildFileMenu()
 	pMenu->FindItem( B_ABOUT_REQUESTED )->SetTarget( be_app );
 	// Not ported yet.
 	for ( uint32 what : { kMsgSongProperties, kMsgExportMidi, kMsgExportSong,
-						  kMsgExportLilyPond, kMsgSettings } ) {
+						  kMsgExportLilyPond } ) {
 		pMenu->FindItem( what )->SetEnabled( false );
 	}
 	return pMenu;
@@ -300,13 +301,6 @@ BMenu* MainWindow::buildViewMenu()
 			pMenu->ItemAt( i )->SetEnabled( false );
 		}
 	}
-	// Editors in Hydrogen's colour theme (default) or the system colours.
-	// Moves to the Settings window once that is ported.
-	pMenu->AddSeparatorItem();
-	m_pSystemColorsItem = new BMenuItem( B_TRANSLATE( "Use system colors in editors" ),
-										 new BMessage( kMsgSystemColors ) );
-	m_pSystemColorsItem->SetMarked( Colors::source() == Colors::Source::System );
-	pMenu->AddItem( m_pSystemColorsItem );
 	return pMenu;
 }
 
@@ -454,8 +448,11 @@ void MainWindow::pollCore()
 		case Event::Type::SelectedPatternChanged:
 		case Event::Type::SongModeActivation:
 		case Event::Type::UpdatePreferences:
+			// Colours or options changed in the settings window.
+			Colors::invalidate();
 			bEditors = true;
 			bInstrument = true;
+			bMixerRebuild = true;
 			break;
 		case Event::Type::UpdateSong:
 			// A different song: its edits can't be undone any more.
@@ -611,15 +608,17 @@ void MainWindow::MessageReceived( BMessage* pMessage )
 		m_pPatternEditor->redrawNotes();
 		updateUndoItems();
 		break;
-	case kMsgSystemColors: {
-		const bool bSystem = ! m_pSystemColorsItem->IsMarked();
-		m_pSystemColorsItem->SetMarked( bSystem );
-		Colors::setSource( bSystem ? Colors::Source::System : Colors::Source::Hydrogen );
-		Settings::save();
-		m_pPatternEditor->refresh();
-		m_pSongEditor->refresh();
+	case kMsgSettings:
+		// One settings window; bring it forward if it is open.
+		if ( m_settings.IsValid() ) {
+			m_settings.SendMessage( kMsgSettings );
+		}
+		else {
+			SettingsWindow* pWindow = new SettingsWindow();
+			m_settings = BMessenger( pWindow );
+			pWindow->Show();
+		}
 		break;
-	}
 
 	case kMsgPlay:
 	case kMsgStop:

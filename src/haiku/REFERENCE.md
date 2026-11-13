@@ -91,9 +91,10 @@ Proposed differences from upstream (each can be vetoed):
 8. **Remembered window frames** for the main window, mixer and other panels.
 9. **Canvas colours:** the editors (grids, rows, velocity lane) draw in
    Hydrogen's colour theme from the core's preferences by default; "Use
-   system colors in editors" (View menu, later Settings) switches them to
-   colours derived from the Haiku system colours. Controls always use the
-   system look. Mute and solo stay red and yellow in both.
+   system colors in editors" switches them to
+   colours derived from the Haiku system colours (Settings > Appearance).
+   Controls always use the system look. Mute and solo stay red and yellow
+   in both.
 10. **Pattern editor header:** standard Haiku controls with labels ("Size:",
    "Grid:") instead of upstream's unlabelled LCD spin boxes.
 11. **Zoom** with Command+wheel over the grid (HIG), in steps of ×2.
@@ -144,6 +145,18 @@ Proposed differences from upstream (each can be vetoed):
    upstream's selector dialog. The plugin parameter window ("Edit"), the
    mixer settings dialog (pan law) and MIDI learn aren't ported yet. On
    Haiku, LADSPA_PATH defaults to the system and user lib/ladspa folders.
+18. **Settings window** (File > Settings…, Alt+,; upstream's Preferences
+   dialog): tabs General, Audio, MIDI, Appearance. Settings apply as they
+   change, with Revert (back to how the window opened) and Defaults, per
+   the HIG; driver, buffer size, sample rate and MIDI ports apply with
+   "Apply and restart driver", as upstream. The options of upstream's MIDI
+   control dialog (note mapping and channel, note-off, clock and transport
+   in/out, feedback, channels) are on the MIDI tab. Left out: the language
+   menu (Haiku apps follow the system language), the Shortcuts tab (Haiku's
+   standard shortcuts), fonts, Qt style, layout, scaling and colour theme
+   editing (the system look covers them), JACK/PortAudio/OSC options (not
+   built on Haiku), autosave and the beat counter (not ported yet). The
+   MIDI action table (MIDI learn) isn't ported yet.
 
 ## Not yet captured
 

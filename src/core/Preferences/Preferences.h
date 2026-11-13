@@ -154,6 +154,8 @@ class Preferences : public H2Core::Object<Preferences> {
 
 	enum class MidiDriver { Alsa, CoreMidi, Jack, None, PortMidi, LoopBack, MidiKit };
 	static MidiDriver parseMidiDriver( const QString& sDriver );
+	/** Whether this build includes @a driver. */
+	static bool isMidiDriverAvailable( const MidiDriver& driver );
 	static QString midiDriverToQString( const MidiDriver& driver );
 
 	/** Specifies which audio settings will be applied to the sample

@@ -798,7 +798,18 @@ Preferences::load( const QString& sPath, const bool bSilent )
 				Preferences::midiDriverToQString( pPref->m_midiDriver ), false,
 				false, bSilent
 			);
-			pPref->m_midiDriver = Preferences::parseMidiDriver( sMidiDriver );
+			// A config written on another system - or the shipped default,
+			// which names ALSA - may name a driver this build lacks. Keep the
+			// build's default then instead of ending up without MIDI.
+			const auto midiDriver = Preferences::parseMidiDriver( sMidiDriver );
+			if ( isMidiDriverAvailable( midiDriver ) ) {
+				pPref->m_midiDriver = midiDriver;
+			}
+			else if ( ! bSilent ) {
+				WARNINGLOG( QString( "MIDI driver [%1] isn't available in this build, using [%2]" )
+								.arg( sMidiDriver )
+								.arg( Preferences::midiDriverToQString( pPref->m_midiDriver ) ) );
+			}
 			pPref->m_sMidiPortName = midiDriverNode.read_string(
 				"port_name", pPref->m_sMidiPortName, false, false, bSilent
 			);
@@ -2026,6 +2037,46 @@ QString Preferences::audioDriverToQString(
 			return "nullptr";
 		default:
 			return "Unhandled driver type";
+	}
+}
+
+bool Preferences::isMidiDriverAvailable( const MidiDriver& driver )
+{
+	switch ( driver ) {
+	case MidiDriver::Alsa:
+#ifdef H2CORE_HAVE_ALSA
+		return true;
+#else
+		return false;
+#endif
+	case MidiDriver::PortMidi:
+#ifdef H2CORE_HAVE_PORTMIDI
+		return true;
+#else
+		return false;
+#endif
+	case MidiDriver::CoreMidi:
+#ifdef H2CORE_HAVE_COREMIDI
+		return true;
+#else
+		return false;
+#endif
+	case MidiDriver::Jack:
+#ifdef H2CORE_HAVE_JACK
+		return true;
+#else
+		return false;
+#endif
+	case MidiDriver::MidiKit:
+#ifdef H2CORE_HAVE_MIDIKIT
+		return true;
+#else
+		return false;
+#endif
+	case MidiDriver::None:
+	case MidiDriver::LoopBack:
+	default:
+		return true;
 	}
 }
 

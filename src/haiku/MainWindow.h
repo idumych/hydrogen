@@ -23,6 +23,7 @@
 #ifndef HAIKU_MAIN_WINDOW_H
 #define HAIKU_MAIN_WINDOW_H
 
+#include <Messenger.h>
 #include <String.h>
 #include <Window.h>
 
@@ -86,7 +87,7 @@ private:
 	MixerWindow* m_pMixer;
 	BMenuItem* m_pMixerItem;
 	BMenuItem* m_pRackItem;
-	BMenuItem* m_pSystemColorsItem;
+	BMessenger m_settings;
 	BSplitView* m_pSplitView;
 	BMenu* m_pRecentMenu;
 	BMenuItem* m_pUndoItem;
