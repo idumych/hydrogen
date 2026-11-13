@@ -32,6 +32,7 @@ class BMenuItem;
 class BMessageRunner;
 class BSplitView;
 class PatternEditor;
+class SongEditor;
 class TransportBar;
 
 /** The main window: menu bar, transport bar, song editor above the
@@ -78,6 +79,7 @@ private:
 
 	TransportBar* m_pTransportBar;
 	PatternEditor* m_pPatternEditor;
+	SongEditor* m_pSongEditor;
 	BMenuItem* m_pSystemColorsItem;
 	BSplitView* m_pSplitView;
 	BMenu* m_pRecentMenu;

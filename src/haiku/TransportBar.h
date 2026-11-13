@@ -35,11 +35,12 @@ class GlyphButton : public BControl
 {
 public:
 	enum class Glyph {
-		Rewind, Record, Play, Pause, Stop, Forward, Loop, SongMode, PatternMode
+		Rewind, Record, Play, Pause, Stop, Forward, Loop, SongMode, PatternMode,
+		Add, Clear, SinglePattern, StackedPatterns, Lock
 	};
 
 	GlyphButton( const char* sName, Glyph glyph, BMessage* pMessage,
-				 bool bToggle = false );
+				 bool bToggle = false, float fSize = 32 );
 
 	void Draw( BRect updateRect ) override;
 	void MouseDown( BPoint where ) override;
@@ -55,6 +56,7 @@ private:
 	void drawGlyph( BRect rect, rgb_color color );
 
 	Glyph m_glyph;
+	float m_fSize;
 	bool m_bToggle;
 	bool m_bTracking;
 	bool m_bPressed;

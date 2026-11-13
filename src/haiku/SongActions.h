@@ -1,0 +1,50 @@
+/*
+ * Hydrogen
+ * Copyright(c) 2008-2026 The hydrogen development team [hydrogen-devel@lists.sourceforge.net]
+ * Haiku port: Copyright(c) 2026 idumych (https://github.com/idumych)
+ *
+ * http://www.hydrogen-music.org
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY, without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see https://www.gnu.org/licenses
+ *
+ */
+
+#ifndef HAIKU_SONG_ACTIONS_H
+#define HAIKU_SONG_ACTIONS_H
+
+#include <String.h>
+
+#include "UndoStack.h"
+
+/** Song-level edits as undoable commands, ported from upstream's
+ * SE_addOrRemovePatternCellAction, SE_insertPatternAction,
+ * SE_deletePatternAction and SE_modifyPatternPropertiesAction. The core
+ * calls behind them push their own events (GridCellToggled,
+ * SelectedPatternChanged, PatternChanged), which refresh the editors. */
+namespace SongActions
+{
+	/** Toggles pattern @a nRow in bar @a nColumn. */
+	std::unique_ptr<UndoCommand> toggleCell( int nColumn, int nRow );
+	/** Adds an empty pattern after the selected one. */
+	std::unique_ptr<UndoCommand> newPattern();
+	/** Copies pattern @a nRow below it, in all the bars it plays in. */
+	std::unique_ptr<UndoCommand> duplicatePattern( int nRow );
+	/** Removes pattern @a nRow and its cells. */
+	std::unique_ptr<UndoCommand> deletePattern( int nRow );
+	std::unique_ptr<UndoCommand> renamePattern( int nRow, const BString& sName );
+	/** Removes every cell of the arrangement. */
+	std::unique_ptr<UndoCommand> clearSequence();
+};
+
+#endif

@@ -95,12 +95,19 @@ Proposed differences from upstream (each can be vetoed):
    colours derived from the Haiku system colours. Controls always use the
    system look. Mute and solo stay red and yellow in both.
 10. **Pattern editor header:** standard Haiku controls with labels ("Size:",
-   "Grid:") instead of upstream's unlabelled LCD spin boxes. Until the song
-   editor is ported, the pattern name is a menu that picks the pattern.
+   "Grid:") instead of upstream's unlabelled LCD spin boxes.
 11. **Zoom** with Command+wheel over the grid (HIG), in steps of ×2.
 12. **Velocity:** drag across the bars with the primary button (upstream
    draws with the secondary button in its select mode; on Haiku the
    secondary button is for context menus).
+13. **Song editor:** click toggles a cell and dragging toggles every cell
+   crossed (upstream's draw mode); one stroke is one undo step. No lasso,
+   move or copy/paste of cells yet. "Clear pattern sequence" is undoable, so
+   it doesn't ask first. New patterns get a name directly ("Pattern N")
+   until the pattern properties dialog is ported; renaming opens a small
+   window instead of an inline field. The playback-track, timeline (tempo
+   markers, tags) and automation strips aren't ported yet, so the ruler is
+   25 px instead of upstream's 50 px header.
 
 ## Not yet captured
 

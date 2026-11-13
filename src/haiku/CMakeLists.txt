@@ -32,6 +32,8 @@ add_executable(Hydrogen
     PatternActions.cpp
     PatternEditor.cpp
     Settings.cpp
+    SongActions.cpp
+    SongEditor.cpp
     TransportBar.cpp
     UndoStack.cpp
 )

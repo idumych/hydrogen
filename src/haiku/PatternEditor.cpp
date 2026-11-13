@@ -69,7 +69,6 @@
 using namespace H2Core;
 
 enum : uint32 {
-	kMsgSelectPattern = 'PEsp',
 	kMsgSizeChanged = 'PEsz',
 	kMsgResolution = 'PErs',
 };
@@ -789,8 +788,11 @@ PatternEditor::PatternEditor()
 	SetViewUIColor( B_PANEL_BACKGROUND_COLOR );
 	m_state.reload();
 
-	m_pPatternMenu = new BPopUpMenu( B_TRANSLATE( "No pattern" ) );
-	m_pPatternField = new BMenuField( "pattern", B_TRANSLATE( "Pattern:" ), m_pPatternMenu );
+	// Upstream: the pattern's name, centred above the grid.
+	m_pPatternName = new BStringView( "pattern name", "" );
+	m_pPatternName->SetFont( be_bold_font );
+	m_pPatternName->SetAlignment( B_ALIGN_CENTER );
+	m_pPatternName->SetExplicitMaxSize( BSize( B_SIZE_UNLIMITED, B_SIZE_UNSET ) );
 
 	m_pNumerator = new BDecimalSpinner( "numerator", B_TRANSLATE( "Size:" ),
 										new BMessage( kMsgSizeChanged ) );
@@ -834,8 +836,7 @@ PatternEditor::PatternEditor()
 	BLayoutBuilder::Group<>( this, B_VERTICAL, 0 )
 		.AddGroup( B_HORIZONTAL, B_USE_HALF_ITEM_SPACING )
 			.SetInsets( B_USE_HALF_ITEM_INSETS, 2, B_USE_HALF_ITEM_INSETS, 2 )
-			.Add( m_pPatternField )
-			.AddGlue()
+			.Add( m_pPatternName )
 			.Add( m_pNumerator )
 			.Add( m_pDenominator )
 			.AddStrut( B_USE_ITEM_SPACING )
@@ -861,7 +862,6 @@ PatternEditor::PatternEditor()
 void PatternEditor::AttachedToWindow()
 {
 	BView::AttachedToWindow();
-	m_pPatternMenu->SetTargetForItems( this );
 	m_pResolutionField->Menu()->SetTargetForItems( this );
 	m_pNumerator->SetTarget( this );
 	m_pDenominator->SetTarget( this );
@@ -872,21 +872,8 @@ void PatternEditor::updateHeader()
 {
 	m_bUpdatingHeader = true;
 
-	// Until the song editor is ported, this menu picks the pattern.
-	m_pPatternMenu->RemoveItems( 0, m_pPatternMenu->CountItems(), true );
-	auto pSong = Hydrogen::get_instance()->getSong();
-	if ( pSong != nullptr && pSong->getPatternList() != nullptr ) {
-		auto pPatterns = pSong->getPatternList();
-		for ( int i = 0; i < pPatterns->size(); i++ ) {
-			BMessage* pMessage = new BMessage( kMsgSelectPattern );
-			pMessage->AddInt32( "index", i );
-			BMenuItem* pItem = new BMenuItem( toBString( pPatterns->get( i )->getName() ), pMessage );
-			pItem->SetMarked( i == m_state.nPattern );
-			pItem->SetTarget( this );
-			m_pPatternMenu->AddItem( pItem );
-		}
-	}
-	m_pPatternField->SetEnabled( m_pPatternMenu->CountItems() > 0 );
+	m_pPatternName->SetText( m_state.pPattern != nullptr
+		? toBString( m_state.pPattern->getName() ).String() : B_TRANSLATE( "No pattern" ) );
 
 	const bool bHasPattern = m_state.pPattern != nullptr;
 	m_pNumerator->SetEnabled( bHasPattern );
@@ -996,13 +983,6 @@ void PatternEditor::zoom( bool bIn )
 void PatternEditor::MessageReceived( BMessage* pMessage )
 {
 	switch ( pMessage->what ) {
-	case kMsgSelectPattern: {
-		int32 nIndex;
-		if ( pMessage->FindInt32( "index", &nIndex ) == B_OK ) {
-			Hydrogen::get_instance()->setSelectedPatternNumber( nIndex );
-		}
-		break;
-	}
 	case kMsgSizeChanged: {
 		if ( m_bUpdatingHeader || m_state.pPattern == nullptr ) {
 			break;

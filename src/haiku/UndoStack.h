@@ -82,6 +82,9 @@ public:
 	/** Performs @a pCommand and records it, dropping anything that was
 	 * undone before. */
 	void push( std::unique_ptr<UndoCommand> pCommand );
+	/** Records a command whose effect has already been applied (e.g. a
+	 * stroke drawn live), without running it again. */
+	void record( std::unique_ptr<UndoCommand> pCommand );
 	void undo();
 	void redo();
 	void clear();

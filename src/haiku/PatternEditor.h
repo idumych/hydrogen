@@ -38,6 +38,7 @@ class BDecimalSpinner;
 class BMenuField;
 class BPopUpMenu;
 class BScrollBar;
+class BStringView;
 class BSpinner;
 class DrumGrid;
 class InstrumentRows;
@@ -108,8 +109,7 @@ private:
 	void updateHeader();
 
 	PatternEditorState m_state;
-	BMenuField* m_pPatternField;
-	BPopUpMenu* m_pPatternMenu;
+	BStringView* m_pPatternName;
 	BDecimalSpinner* m_pNumerator;
 	BSpinner* m_pDenominator;
 	BMenuField* m_pResolutionField;

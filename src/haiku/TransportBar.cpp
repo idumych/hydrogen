@@ -51,13 +51,11 @@
 
 using namespace H2Core;
 
-// Upstream's transport buttons sit on a 40 px pitch in a 40 px bar.
-static const float kButtonSize = 32;
-
 GlyphButton::GlyphButton( const char* sName, Glyph glyph, BMessage* pMessage,
-						  bool bToggle )
+						  bool bToggle, float fSize )
 	: BControl( sName, nullptr, pMessage, B_WILL_DRAW | B_NAVIGABLE )
 	, m_glyph( glyph )
+	, m_fSize( fSize )
 	, m_bToggle( bToggle )
 	, m_bTracking( false )
 	, m_bPressed( false )
@@ -66,7 +64,7 @@ GlyphButton::GlyphButton( const char* sName, Glyph glyph, BMessage* pMessage,
 
 BSize GlyphButton::MinSize()
 {
-	return BSize( kButtonSize, kButtonSize );
+	return BSize( m_fSize, m_fSize );
 }
 
 BSize GlyphButton::MaxSize()
@@ -171,6 +169,36 @@ void GlyphButton::drawGlyph( BRect rect, rgb_color color )
 			const float y = c.y - s + ( i / 2 ) * s * 1.05f;
 			FillRect( BRect( x, y, x + s * 0.9f, y + s * 0.9f ) );
 		}
+		break;
+	case Glyph::Add:
+		FillRect( BRect( c.x - s, c.y - s * 0.2f, c.x + s, c.y + s * 0.2f ) );
+		FillRect( BRect( c.x - s * 0.2f, c.y - s, c.x + s * 0.2f, c.y + s ) );
+		break;
+	case Glyph::Clear:
+		// A bin: lid and body.
+		FillRect( BRect( c.x - s, c.y - s, c.x + s, c.y - s * 0.7f ) );
+		FillRect( BRect( c.x - s * 0.3f, c.y - s * 1.2f, c.x + s * 0.3f, c.y - s ) );
+		StrokeRect( BRect( c.x - s * 0.75f, c.y - s * 0.55f, c.x + s * 0.75f, c.y + s ) );
+		StrokeLine( BPoint( c.x, c.y - s * 0.3f ), BPoint( c.x, c.y + s * 0.75f ) );
+		break;
+	case Glyph::SinglePattern:
+		StrokeRect( BRect( c.x - s, c.y - s * 0.4f, c.x + s, c.y + s * 0.4f ) );
+		break;
+	case Glyph::StackedPatterns:
+		for ( int i = -1; i <= 1; i++ ) {
+			StrokeRect( BRect( c.x - s, c.y + i * s * 0.65f - s * 0.25f, c.x + s,
+							   c.y + i * s * 0.65f + s * 0.25f ) );
+		}
+		break;
+	case Glyph::Lock:
+		FillRect( BRect( c.x - s * 0.8f, c.y - s * 0.1f, c.x + s * 0.8f, c.y + s ) );
+		SetPenSize( 2 );
+		StrokeArc( BPoint( c.x, c.y - s * 0.3f ), s * 0.5f, s * 0.6f, 0, 180 );
+		if ( Value() != B_CONTROL_ON ) {
+			// Open shackle.
+			StrokeLine( BPoint( c.x + s * 0.5f, c.y - s * 0.3f ), BPoint( c.x + s * 0.5f, c.y - s * 0.1f ) );
+		}
+		SetPenSize( 1 );
 		break;
 	}
 }

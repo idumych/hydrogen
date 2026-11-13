@@ -59,6 +59,7 @@
 #include "Messages.h"
 #include "PatternActions.h"
 #include "PatternEditor.h"
+#include "SongEditor.h"
 #include "Settings.h"
 #include "TransportBar.h"
 #include "UndoStack.h"
@@ -151,8 +152,7 @@ MainWindow::MainWindow()
 	m_pTransportBar = new TransportBar();
 
 	// Sizes from REFERENCE.md: song editor ~290 px high, rack 300 px wide.
-	auto pSongEditor = new Placeholder( "song editor", B_TRANSLATE( "Song editor" ),
-										BSize( 400, 120 ) );
+	m_pSongEditor = new SongEditor();
 	m_pPatternEditor = new PatternEditor();
 	auto pRack = new Placeholder( "instrument rack", B_TRANSLATE( "Instrument rack" ),
 								  BSize( 300, 160 ) );
@@ -160,7 +160,7 @@ MainWindow::MainWindow()
 
 	m_pSplitView = new BSplitView( B_VERTICAL, 0 );
 	BLayoutBuilder::Split<>( m_pSplitView )
-		.Add( pSongEditor, 0.4f )
+		.Add( m_pSongEditor, 0.4f )
 		.AddGroup( B_HORIZONTAL, 0, 0.6f )
 			.Add( m_pPatternEditor )
 			.Add( pRack )
@@ -414,8 +414,18 @@ void MainWindow::pollCore()
 	}
 	bool bTitle = false;
 	bool bEditors = false;
+	bool bSong = false;
 	while ( auto pEvent = pQueue->popEvent() ) {
 		switch ( pEvent->getType() ) {
+		case Event::Type::GridCellToggled:
+		case Event::Type::NextPatternsChanged:
+		case Event::Type::PlayingPatternsChanged:
+		case Event::Type::SongSizeChanged:
+		case Event::Type::StackedModeActivation:
+		case Event::Type::Relocation:
+		case Event::Type::State:
+			bSong = true;
+			break;
 		case Event::Type::DrumkitLoaded:
 		case Event::Type::DrumkitIsModified:
 		case Event::Type::InstrumentMuteSoloChanged:
@@ -455,7 +465,11 @@ void MainWindow::pollCore()
 	if ( bEditors ) {
 		m_pPatternEditor->refresh();
 	}
+	if ( bEditors || bSong ) {
+		m_pSongEditor->refresh();
+	}
 	m_pPatternEditor->updatePlayhead();
+	m_pSongEditor->updatePlayhead();
 	m_pTransportBar->update();
 }
 
@@ -556,6 +570,7 @@ void MainWindow::MessageReceived( BMessage* pMessage )
 		Colors::setSource( bSystem ? Colors::Source::System : Colors::Source::Hydrogen );
 		Settings::save();
 		m_pPatternEditor->refresh();
+		m_pSongEditor->refresh();
 		break;
 	}
 

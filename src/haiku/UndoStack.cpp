@@ -31,6 +31,11 @@ UndoStack& UndoStack::get()
 void UndoStack::push( std::unique_ptr<UndoCommand> pCommand )
 {
 	pCommand->redo();
+	record( std::move( pCommand ) );
+}
+
+void UndoStack::record( std::unique_ptr<UndoCommand> pCommand )
+{
 	m_commands.resize( m_nIndex );
 	m_commands.push_back( std::move( pCommand ) );
 	if ( m_commands.size() > kLimit ) {

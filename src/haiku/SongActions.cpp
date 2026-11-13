@@ -1,0 +1,237 @@
+/*
+ * Hydrogen
+ * Copyright(c) 2008-2026 The hydrogen development team [hydrogen-devel@lists.sourceforge.net]
+ * Haiku port: Copyright(c) 2026 idumych (https://github.com/idumych)
+ *
+ * http://www.hydrogen-music.org
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY, without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see https://www.gnu.org/licenses
+ *
+ */
+
+#include "SongActions.h"
+
+#include <Catalog.h>
+
+#include <core/Basics/GridPoint.h>
+#include <core/Basics/Pattern.h>
+#include <core/Basics/PatternList.h>
+#include <core/Basics/Song.h>
+#include <core/CoreActionController.h>
+#include <core/Hydrogen.h>
+
+#undef B_TRANSLATION_CONTEXT
+#define B_TRANSLATION_CONTEXT "SongActions"
+
+using namespace H2Core;
+
+namespace SongActions
+{
+
+static std::shared_ptr<Song> song()
+{
+	return Hydrogen::get_instance()->getSong();
+}
+
+static std::shared_ptr<Pattern> patternAt( int nRow )
+{
+	auto pSong = song();
+	if ( pSong == nullptr || nRow < 0 || nRow >= pSong->getPatternList()->size() ) {
+		return nullptr;
+	}
+	return pSong->getPatternList()->get( nRow );
+}
+
+/** Bars that pattern @a nRow plays in. */
+static std::vector<int> columnsOf( int nRow )
+{
+	std::vector<int> columns;
+	auto pSong = song();
+	auto pPattern = patternAt( nRow );
+	if ( pPattern == nullptr ) {
+		return columns;
+	}
+	auto pColumns = pSong->getPatternGroupVector();
+	for ( int i = 0; i < (int) pColumns->size(); i++ ) {
+		if ( ( *pColumns )[ i ]->index( pPattern ) != -1 ) {
+			columns.push_back( i );
+		}
+	}
+	return columns;
+}
+
+// Toggling is its own inverse, like upstream's Toggle action.
+class CellCommand : public UndoCommand
+{
+public:
+	CellCommand( int nColumn, int nRow )
+		: UndoCommand( B_TRANSLATE( "toggle cell" ) ), m_nColumn( nColumn ), m_nRow( nRow ) {}
+
+	void redo() override { CoreActionController::toggleGridCell( GridPoint( m_nColumn, m_nRow ) ); }
+	void undo() override { redo(); }
+
+private:
+	int m_nColumn, m_nRow;
+};
+
+std::unique_ptr<UndoCommand> toggleCell( int nColumn, int nRow )
+{
+	return std::make_unique<CellCommand>( nColumn, nRow );
+}
+
+/** Inserts a copy of a pattern at a position; undo removes it. */
+class InsertCommand : public UndoCommand
+{
+public:
+	InsertCommand( const char* sName, int nPosition, std::shared_ptr<Pattern> pPattern )
+		: UndoCommand( sName ), m_nPosition( nPosition ), m_pPattern( pPattern ) {}
+
+	void redo() override
+	{
+		CoreActionController::setPattern( std::make_shared<Pattern>( m_pPattern ), m_nPosition, false );
+	}
+	void undo() override { CoreActionController::removePattern( m_nPosition ); }
+
+private:
+	int m_nPosition;
+	std::shared_ptr<Pattern> m_pPattern;
+};
+
+/** Removes a pattern; undo puts a copy back at its position. */
+class RemoveCommand : public UndoCommand
+{
+public:
+	RemoveCommand( int nPosition, std::shared_ptr<Pattern> pPattern )
+		: UndoCommand( B_TRANSLATE( "delete pattern" ) )
+		, m_nPosition( nPosition ), m_pPattern( std::make_shared<Pattern>( pPattern ) ) {}
+
+	void redo() override { CoreActionController::removePattern( m_nPosition ); }
+	void undo() override
+	{
+		CoreActionController::setPattern( std::make_shared<Pattern>( m_pPattern ), m_nPosition, false );
+	}
+
+private:
+	int m_nPosition;
+	std::shared_ptr<Pattern> m_pPattern;
+};
+
+std::unique_ptr<UndoCommand> newPattern()
+{
+	auto pSong = song();
+	if ( pSong == nullptr ) {
+		return nullptr;
+	}
+	auto pPatterns = pSong->getPatternList();
+	// Upstream names new patterns "Pattern N" and takes author and licence
+	// from the song (its properties dialog comes later in the port).
+	auto pPattern = std::make_shared<Pattern>();
+	pPattern->setName( pPatterns->findUnusedPatternName(
+		QString( "Pattern %1" ).arg( pPatterns->size() + 1 ) ) );
+	pPattern->setAuthor( pSong->getAuthor() );
+	pPattern->setLicense( pSong->getLicense() );
+	const int nSelected = Hydrogen::get_instance()->getSelectedPatternNumber();
+	const int nPosition = nSelected >= 0 ? nSelected + 1 : pPatterns->size();
+	return std::make_unique<InsertCommand>( B_TRANSLATE( "new pattern" ), nPosition, pPattern );
+}
+
+std::unique_ptr<UndoCommand> duplicatePattern( int nRow )
+{
+	auto pOriginal = patternAt( nRow );
+	if ( pOriginal == nullptr ) {
+		return nullptr;
+	}
+	auto pMacro = std::make_unique<MacroCommand>( B_TRANSLATE( "duplicate pattern" ) );
+	auto pCopy = std::make_shared<Pattern>( pOriginal );
+	pMacro->add( std::make_unique<InsertCommand>( "", nRow + 1, pCopy ) );
+	for ( int nColumn : columnsOf( nRow ) ) {
+		pMacro->add( toggleCell( nColumn, nRow + 1 ) );
+	}
+	return pMacro;
+}
+
+std::unique_ptr<UndoCommand> deletePattern( int nRow )
+{
+	auto pPattern = patternAt( nRow );
+	if ( pPattern == nullptr ) {
+		return nullptr;
+	}
+	auto pMacro = std::make_unique<MacroCommand>( B_TRANSLATE( "delete pattern" ) );
+	for ( int nColumn : columnsOf( nRow ) ) {
+		pMacro->add( toggleCell( nColumn, nRow ) );
+	}
+	pMacro->add( std::make_unique<RemoveCommand>( nRow, pPattern ) );
+	return pMacro;
+}
+
+class RenameCommand : public UndoCommand
+{
+public:
+	RenameCommand( int nRow, const QString& sOld, const QString& sNew )
+		: UndoCommand( B_TRANSLATE( "rename pattern" ) ), m_nRow( nRow ), m_sOld( sOld ), m_sNew( sNew ) {}
+
+	void redo() override { apply( m_sNew ); }
+	void undo() override { apply( m_sOld ); }
+
+private:
+	void apply( const QString& sName )
+	{
+		auto pPattern = patternAt( m_nRow );
+		if ( pPattern == nullptr ) {
+			return;
+		}
+		CoreActionController::setPatternProperties(
+			pPattern->getPath(), pPattern->getVersion(), sName, pPattern->getAuthor(),
+			pPattern->getInfo(), pPattern->getLicense(), pPattern->getTags(), m_nRow );
+	}
+
+	int m_nRow;
+	QString m_sOld, m_sNew;
+};
+
+std::unique_ptr<UndoCommand> renamePattern( int nRow, const BString& sName )
+{
+	auto pPattern = patternAt( nRow );
+	if ( pPattern == nullptr ) {
+		return nullptr;
+	}
+	const QString sNew = song()->getPatternList()->findUnusedPatternName(
+		QString::fromUtf8( sName.String() ), nRow );
+	if ( sNew == pPattern->getName() ) {
+		return nullptr;
+	}
+	return std::make_unique<RenameCommand>( nRow, pPattern->getName(), sNew );
+}
+
+std::unique_ptr<UndoCommand> clearSequence()
+{
+	auto pSong = song();
+	if ( pSong == nullptr ) {
+		return nullptr;
+	}
+	auto pMacro = std::make_unique<MacroCommand>( B_TRANSLATE( "clear pattern sequence" ) );
+	auto pColumns = pSong->getPatternGroupVector();
+	auto pPatterns = pSong->getPatternList();
+	// Last bar first, so removing cells never shifts a bar still to come.
+	for ( int nColumn = (int) pColumns->size() - 1; nColumn >= 0; nColumn-- ) {
+		for ( int nRow = 0; nRow < pPatterns->size(); nRow++ ) {
+			if ( ( *pColumns )[ nColumn ]->index( pPatterns->get( nRow ) ) != -1 ) {
+				pMacro->add( toggleCell( nColumn, nRow ) );
+			}
+		}
+	}
+	return pMacro->isEmpty() ? nullptr : std::move( pMacro );
+}
+
+};

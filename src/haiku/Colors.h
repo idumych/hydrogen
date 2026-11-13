@@ -47,6 +47,12 @@ struct EditorColors {
 	rgb_color playhead;
 	rgb_color selection;
 	rgb_color ruler, rulerText;
+	// Song editor
+	rgb_color songBackground, songAlternateRow, songSelectedRow, songVirtualRow;
+	rgb_color songLine, songText, songSelectedText;
+	rgb_color stackedOn, stackedOnNext, stackedOffNext;
+	rgb_color highlight;		///< selected pattern's border, drop targets
+	rgb_color midLight;			///< ruler beyond the song's end
 };
 
 namespace Colors
@@ -66,6 +72,9 @@ namespace Colors
 	rgb_color lighter( rgb_color color, int nFactor );
 	/** Upstream's computeNoteColor(): velocity 0..1 to a fill colour. */
 	rgb_color noteColor( float fVelocity );
+	/** Upstream's song editor cell colour for pattern row @a nRow of
+	 * @a nPatterns: the theme's palette, or its automatic hue spread. */
+	rgb_color patternColor( int nRow, int nPatterns );
 };
 
 #endif

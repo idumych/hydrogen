@@ -129,6 +129,18 @@ static void fromHydrogenTheme( EditorColors& c )
 	c.selection = fromQ( t.m_selectionHighlightColor );
 	c.ruler = darker( c.alternateRow, 120 );
 	c.rulerText = fromQ( t.m_patternEditor_textColor );
+	c.songBackground = fromQ( t.m_songEditor_backgroundColor );
+	c.songAlternateRow = fromQ( t.m_songEditor_alternateRowColor );
+	c.songSelectedRow = fromQ( t.m_songEditor_selectedRowColor );
+	c.songVirtualRow = fromQ( t.m_songEditor_virtualRowColor );
+	c.songLine = fromQ( t.m_songEditor_lineColor );
+	c.songText = fromQ( t.m_songEditor_textColor );
+	c.songSelectedText = fromQ( t.m_songEditor_selectedRowTextColor );
+	c.stackedOn = fromQ( t.m_songEditor_stackedModeOnColor );
+	c.stackedOnNext = fromQ( t.m_songEditor_stackedModeOnNextColor );
+	c.stackedOffNext = fromQ( t.m_songEditor_stackedModeOffNextColor );
+	c.highlight = fromQ( t.m_highlightColor );
+	c.midLight = fromQ( t.m_midLightColor );
 }
 
 static void fromSystem( EditorColors& c )
@@ -172,6 +184,18 @@ static void fromSystem( EditorColors& c )
 	c.selection = selected;
 	c.ruler = panel;
 	c.rulerText = ui_color( B_PANEL_TEXT_COLOR );
+	c.songBackground = doc;
+	c.songAlternateRow = mix( doc, text, 0.06f );
+	c.songSelectedRow = mix( doc, selected, 0.5f );
+	c.songVirtualRow = mix( doc, make_color( 200, 160, 90, 255 ), 0.3f );
+	c.songLine = mix( doc, text, 0.35f );
+	c.songText = text;
+	c.songSelectedText = ui_color( B_LIST_SELECTED_ITEM_TEXT_COLOR );
+	c.stackedOn = make_color( 110, 170, 110, 255 );
+	c.stackedOnNext = make_color( 240, 223, 175, 255 );
+	c.stackedOffNext = make_color( 230, 90, 90, 255 );
+	c.highlight = ui_color( B_KEYBOARD_NAVIGATION_COLOR );
+	c.midLight = tint_color( panel, B_DARKEN_1_TINT );
 }
 
 const EditorColors& get()
@@ -186,6 +210,26 @@ const EditorColors& get()
 		sValid = true;
 	}
 	return sColors;
+}
+
+rgb_color patternColor( int nRow, int nPatterns )
+{
+	auto pPref = Preferences::get_instance();
+	auto pInterface = pPref != nullptr ? pPref->getInterfaceTheme() : nullptr;
+	if ( pInterface != nullptr && pInterface->m_coloringMethod == InterfaceTheme::ColoringMethod::Automatic ) {
+		const int nSteps = std::max( 1, nPatterns );
+		const int nHue = ( ( nRow % nSteps ) * ( 300 / nSteps ) + 213 ) % 300;
+		QColor color;
+		color.setHsv( nHue, 156, 249 );
+		return fromQ( color );
+	}
+	if ( pInterface != nullptr && ! pInterface->m_patternColors.empty() &&
+		 pInterface->m_nVisiblePatternColors > 0 ) {
+		const int nIndex = std::clamp( nRow % pInterface->m_nVisiblePatternColors, 0,
+									   (int) pInterface->m_patternColors.size() - 1 );
+		return fromQ( pInterface->m_patternColors[ nIndex ] );
+	}
+	return make_color( 67, 96, 131, 255 );
 }
 
 rgb_color noteColor( float fVelocity )
