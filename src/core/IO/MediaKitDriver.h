@@ -33,18 +33,20 @@
 
 #include <MediaDefs.h>
 
-class BSoundPlayer;
+#include <core/IO/MediaKitNode.h>
+
 
 namespace H2Core
 {
 
 /** Audio output through the Haiku Media Kit.
  *
- * A BSoundPlayer is a producer node connected to the system mixer.
- * Its callback asks Hydrogen for audio in chunks of at most
- * MAX_BUFFER_SIZE frames and interleaves them into the mixer's
- * buffer, converting to whatever sample format the connection ended
- * up with. The mixer resamples, so any sample rate is accepted. */
+ * Hydrogen registers its own producer node, "Hydrogen" (MediaKitNode):
+ * its "Main" output is connected to the system mixer at the mixer's
+ * sample rate, its "Send" output carries the same mix for recorders and
+ * other programs (connect it in Cortex, or from the other program). The
+ * node asks Hydrogen for one buffer of the preferences' size at a time,
+ * on the audio output's clock. */
 class MediaKitDriver : public Object<MediaKitDriver>, public AudioDriver
 {
 	H2_OBJECT(MediaKitDriver)
@@ -65,12 +67,11 @@ public:
 	QString toQString( const QString& sPrefix = "", bool bShort = true ) const override;
 
 private:
-	static void playBuffer( void* pCookie, void* pBuffer, size_t nSize,
-							const media_raw_audio_format& format );
-	void fill( void* pBuffer, size_t nSize, const media_raw_audio_format& format );
+	/** The node asks for the next @a nFrames of the mix. */
+	void render( int32 nFrames, const float** ppLeft, const float** ppRight );
 
 	audioProcessCallback m_processCallback;
-	BSoundPlayer* m_pPlayer;
+	MediaKitNode* m_pNode;
 	float* m_pOut_L;
 	float* m_pOut_R;
 	unsigned m_nSampleRate;

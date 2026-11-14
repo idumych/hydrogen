@@ -273,6 +273,19 @@ Proposed differences from upstream (each can be vetoed):
    stopping playback, as upstream; the core's LilyPond writer. It doesn't
    report failure, so an empty or missing file is reported instead.
 
+28. **Media Kit node** (core: MediaKitNode, used by the Media Kit driver;
+   replaces BSoundPlayer): Hydrogen is a producer node named "Hydrogen"
+   with two outputs, "Main" (connected to the system mixer at the mixer's
+   sample rate) and "Send" (the same mix, free for recorders, PowerMix or
+   anything Cortex wires it to) — the Media Kit's counterpart of a JACK
+   client. Buffers follow the preferences' buffer size, on the audio
+   output's clock; the song keeps rendering with nothing connected. Each
+   output may take float, int32 or int16 at the node's rate and buffer
+   length. Quitting removes every connection, also other programs'.
+   Tools: h2sendrec SECONDS [OUTPUT] records an output with
+   BMediaRecorder. Not yet: per-instrument outputs (upstream's JACK track
+   outputs).
+
 ## Not yet captured
 
 Playlist editor, director, MIDI control dialog.
