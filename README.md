@@ -1,84 +1,160 @@
-# ![icon](http://hydrogen-music.org/images/favicon.png) Hydrogen
-[![AppVeyor Build Status](https://ci.appveyor.com/api/projects/status/32r7s2skrgm9ubva?svg=true)](https://ci.appveyor.com/api/projects/status/32r7s2skrgm9ubva?svg=true)
-[![Packaging status](https://repology.org/badge/tiny-repos/hydrogen-drum-machine.svg)](https://repology.org/project/hydrogen-drum-machine/versions)
+# Hydrogen for Haiku
 
-The advanced drum machine for Linux, macOS, and Windows.
+A native [Haiku](https://www.haiku-os.org) port of [Hydrogen](http://hydrogen-music.org),
+the advanced drum machine and pattern sequencer.
 
-![screenshot](http://hydrogen-music.org/images/screenshots/main-window.png)
+Upstream Hydrogen is a Qt application for Linux, macOS and Windows. This fork
+keeps upstream's audio engine (the `libhydrogen-core` library) and replaces
+its Qt interface with one written for the Haiku API. Audio goes through the
+Media Kit and MIDI through the Midi Kit, so Hydrogen behaves like any other
+Haiku program: it follows the system look, puts its settings in
+`~/config/settings`, and shows up in Cortex as a node you can route.
 
-## Haiku port
-
-This fork's `haiku-native` branch is a native [Haiku](https://www.haiku-os.org)
-port: the window, editors, mixer and dialogs use the Haiku API, audio goes
-through the Media Kit (Hydrogen shows up in Cortex as a node with main and send
-outputs) and MIDI through the Midi Kit. The audio engine is upstream Hydrogen's
-2.0 development branch, with its Qt Core/Xml/Network libraries.
-
-Install the `.hpkg` from the [releases page](https://github.com/idumych/hydrogen/releases)
-on Haiku R1/beta6 or later: `pkgman install ./hydrogen-<version>-1-x86_64.hpkg`.
-It pulls in Qt 5, libsndfile and libarchive from HaikuPorts and replaces
-HaikuPorts' Qt build of Hydrogen.
-
-| Platform | Status |
-|---|---|
-| Haiku R1/beta6, x86_64 | Tested in a QEMU VM: install, launch, playback through the Media Kit, song export |
-| Haiku arm64 | No package: Qt isn't available for Haiku arm64 |
-| Linux, macOS, Windows | Use upstream Hydrogen (links below) |
-
-## Screenshots
-
-![Hydrogen on Haiku](docs/screenshots/haiku-song-editor.png)
-
-The song and pattern editors on Haiku R1/beta6, with the GM kit demo song.
-
-## Features
-* First-class MIDI support
-* Highly customizable
-* Stable and performant
-* Loads of drumkits to choose from
-* In-depth control of instrument, sample, and note properties
-* High quality time-stretching and pitch shifting
-* Automate it using MIDI or OSC API
-
-Hydrogen is both a drum sequencer for pattern-based programming and a drum synth. Its simple yet feature-rich design makes it a versatile companion, be it for quick practice at home, professional usage as fully-fledged drum machine in your studio, or drum looper on steroids for your live performance.
+![The song and pattern editors on Haiku](docs/screenshots/haiku-song-editor.png)
 
 ## Download
 
-* **[Windows (64bit) (>=Vista)](https://github.com/hydrogen-music/hydrogen/releases/download/1.2.7/Hydrogen-1.2.7-win64.exe)**
-* **[macOS (>=10.14)](https://github.com/hydrogen-music/hydrogen/releases/download/1.2.7/Hydrogen-1.2.7.dmg)**
-* **[Linux](https://github.com/hydrogen-music/hydrogen/releases/download/1.2.7/Hydrogen-1.2.7-x86_64.AppImage)** <details>
-   <summary>or check you distribution's repo</summary>
-  
-   [![Packaging status](https://repology.org/badge/vertical-allrepos/hydrogen-drum-machine.svg?header=Hydrogen)](https://repology.org/project/hydrogen-drum-machine/versions)
+Get the `.hpkg` from the [releases page](https://github.com/idumych/hydrogen/releases)
+and install it on Haiku R1/beta6 or later:
 
- </details>
+    pkgman install ./hydrogen-2.0.0-1-x86_64.hpkg
 
-Binaries for older OS versions can be found in the [Download section of our homepage](http://hydrogen-music.org/downloads/).
+pkgman pulls in Qt 5 (for the engine's core libraries), libsndfile and
+libarchive from HaikuPorts. On a fresh system that's about 40 packages,
+because HaikuPorts' Qt 5 package brings GStreamer and FFmpeg with it. The
+package replaces HaikuPorts' Qt build of Hydrogen, which has the same name.
 
-## Building
+| Platform | Status |
+|---|---|
+| Haiku R1/beta6, x86_64 | Released (2.0.0). Tested in a QEMU VM on a fresh install: install, playback through the Media Kit, song export |
+| Haiku arm64 | No package: Qt isn't available for Haiku arm64 (see "Planned") |
+| Linux, macOS, Windows | Use [upstream Hydrogen](https://github.com/hydrogen-music/hydrogen) |
 
-If your particular OS is not supported or you want to use the latest developing version, you can build Hydrogen yourself. We provide step-by-step guides for the following platforms:
+The engine is upstream's 2.0 development branch (pre-alpha at the time of
+this release), not a released upstream version.
 
-* **[Linux](https://github.com/hydrogen-music/hydrogen/blob/main/INSTALL.md)**
-* **[macOS](https://github.com/hydrogen-music/hydrogen/wiki/Building-Hydrogen-from-Source-(macOS))**
-* **[Windows](https://github.com/hydrogen-music/hydrogen/wiki/Building-Hydrogen-from-source-(Windows))**
+## What works
 
-## Usage
+**Editing**
+- Song editor: the pattern sequence, toggling cells by clicking and dragging,
+  pattern list with its context menu, song and pattern modes, looping.
+- Pattern editor: the drum grid, note velocity lane, pattern size and grid
+  resolution, zoom with Alt+wheel.
+- Instrument rack with three tabs:
+  - *Parameters:* envelope, gain, mute group, filter, pitch, MIDI output.
+  - *Components:* velocity layers, sample selection mode, waveform, per-layer
+    gain and pitch, adding samples from a file panel.
+  - *Library:* drumkits, songs and patterns; double-click to load.
+- Sample editor (double-click a waveform): start, loop and end markers, loop
+  modes, Rubberband time-stretching and pitch, volume and pan envelopes,
+  preview, Apply and Revert.
+- Song, pattern and drumkit properties: name, version, author, licence,
+  notes, tags, image, instrument types.
+- Undo and redo (Alt+Z, Alt+Shift+Z) for edits to songs, patterns, kits and
+  layers.
+- Autosave with recovery after a crash.
 
-The main entry point for learning how to use Hydrogen is our [manual](http://hydrogen-music.org/documentation/manual/manual_en.html).
+![Velocity layers in the Components tab](docs/screenshots/haiku-components.png)
 
-Further info can be found in our [FAQ](http://hydrogen-music.org/faq/) and [Wiki](https://github.com/hydrogen-music/hydrogen/wiki).
+![The sample editor](docs/screenshots/haiku-sample-editor.png)
 
-## Contributing
+**Mixing**
+- Mixer window: a strip per instrument (mute, solo, pan, four effect sends,
+  fader, meter), the master section with humanize and swing.
+- LADSPA effects: four effect slots, each with a window listing the installed
+  plugins, a fader per control and a meter per output.
 
-You want to contribute to Hydrogen?
+![The mixer during playback](docs/screenshots/haiku-mixer.png)
 
-How about making/improving a [translation](data/i18n)? You can also
-check out our (ancient) [How to
-contribute](http://hydrogen-music.org/contribution/) guide or get in
-touch with us on our [mailing
-list](http://lists.sourceforge.net/mailman/listinfo/hydrogen-devel).
+**Drumkits**
+- Open any installed kit, start a new one, save, save as, export to an
+  `.h2drumkit` file and import one.
 
-## License
+**Files**
+- Open, save, recent songs, demo songs.
+- Export a song to WAV, FLAC, Ogg, Opus, MP3, AIFF, AU or CAF, as one file,
+  one file per instrument, or both.
+- Export to a MIDI file (SMF0 and SMF1) and to LilyPond.
 
-Hydrogen is distributed under [GPLv2+](./COPYING).
+**Audio and MIDI**
+- Media Kit: Hydrogen is a node with two outputs. "Main" goes to the system
+  mixer; "Send" carries the same mix for recorders and other programs, like a
+  JACK client's outputs.
+- Midi Kit: input and output ports, MIDI notes playing instruments, MIDI clock
+  and transport in and out. Hydrogen reconnects when a program it's linked
+  to restarts.
+- MIDI learn: Shift-click a mixer control or transport button and move a
+  controller to bind it. Settings ▸ MIDI actions lists and edits every
+  binding.
+- Plays along with [PowerMix](https://github.com/idumych/powermix): with
+  PowerMix's MIDI clock as input, each take starts Hydrogen after the
+  count-in at PowerMix's tempo.
+
+![Hydrogen as a Media Kit node in Cortex](docs/screenshots/haiku-cortex.png)
+
+![MIDI settings](docs/screenshots/haiku-settings-midi.png)
+
+**Haiku conventions**
+- Menus, wording and shortcuts follow the Haiku Human Interface Guidelines.
+  Settings… is in the File menu (Alt+,), Redo is Alt+Shift+Z, and labels use
+  sentence case.
+- The editors use Hydrogen's colour theme by default, or the system colours
+  (Settings ▸ Appearance).
+- Window sizes and positions are remembered.
+- User songs, kits and patterns live in `~/config/settings/Hydrogen/data`.
+
+## Planned
+
+Menu items for the first few of these are already in the menus, shown
+disabled.
+
+**Next**
+- Space to start and stop playback.
+- Playlist editor and the director window.
+- Timeline: tempo markers and tags in the song editor.
+- Automation path and playback track.
+- Undo history window.
+- Online import of drumkits and patterns.
+- Debug menu: audio engine and filesystem info, opening the log.
+- Fix the export window growing when the export finishes.
+
+**Later**
+- Song editor: selecting, moving and copying cells.
+- Library: properties, duplicate, delete, import and export from the Library
+  tab.
+- Components tab: reordering layers by dragging, dropping sample files on it.
+- Mixer settings (pan law) and the beat counter.
+- One Media Kit output per instrument, like upstream's JACK track outputs.
+- Translations through Haiku's locale kit.
+- A core without Qt. This would drop the 40-package dependency and make an
+  arm64 package possible.
+
+## Building from source
+
+On Haiku R1/beta6:
+
+    pkgman install cmake qt5_devel qt5_tools libsndfile_devel libarchive_devel \
+        zlib_devel ladspa_sdk_devel cppunit_devel
+    git clone -b haiku-native https://github.com/idumych/hydrogen.git
+    cd hydrogen
+    mkdir build && cd build
+    cmake .. && make Hydrogen tests
+    H2_SYS_DATA=$PWD/../data src/haiku/Hydrogen
+
+`H2_SYS_DATA` points the app at the source tree's data folder (drumkits,
+demo songs) instead of the installed one. `sh packaging/build-hpkg.sh`
+builds the package, runs the core's unit tests, and writes
+`hydrogen-<version>-1-x86_64.hpkg`.
+
+The native interface lives in `src/haiku/`. `src/haiku/REFERENCE.md`
+documents each window, where it differs from upstream, and the upstream bugs
+fixed along the way. The Media Kit and Midi Kit drivers are in `src/core/IO/`.
+
+## Credits and licence
+
+Hydrogen is written by [the Hydrogen development team](AUTHORS), 2002–2026.
+The Haiku port is by [idumych](https://github.com/idumych). This is a fork,
+not an official upstream release; report Haiku-specific problems
+[here](https://github.com/idumych/hydrogen/issues).
+
+GNU General Public License, version 2 or later. See [COPYING](COPYING).
