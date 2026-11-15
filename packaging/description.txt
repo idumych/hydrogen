@@ -1,0 +1,3 @@
+Hydrogen is an advanced drum machine. Its pattern-based sequencer, drumkit sound library, layered samples with velocity and pan, mixer with LADSPA effects, and song export to WAV, FLAC, MIDI and LilyPond make it suitable for live sessions and for composing.
+
+This is a native Haiku port: the window, editors, mixer and dialogs use the Haiku API, audio goes through the Media Kit (Hydrogen appears as a node in Cortex with main and send outputs), and MIDI through the Midi Kit, including MIDI learn, clock and transport. The audio engine is upstream Hydrogen's 2.0 development branch.

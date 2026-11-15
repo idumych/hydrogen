@@ -52,3 +52,9 @@ test.log
 # Ignore AppImage toolchain
 linuxdeploy-plugin-qt-x86_64.AppImage
 linuxdeploy-x86_64.AppImage
+
+# Haiku port release pipeline (beos-app-platforms)
+/obj/
+/dist/
+*.hpkg
+/.haiku-headers/
