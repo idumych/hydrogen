@@ -54,8 +54,12 @@ std::shared_ptr<Preferences> Preferences::__instance = nullptr;
 void Preferences::create_instance()
 {
 	if ( __instance == nullptr ) {
-		// User-level configs
-		auto pPrefUser = load( Filesystem::userConfigPath() );
+		// User-level configs. There are none before the first save, which
+		// is expected rather than an error.
+		const QString sUserConfig = Filesystem::userConfigPath();
+		auto pPrefUser = Filesystem::fileExists( sUserConfig, true )
+							 ? load( sUserConfig )
+							 : nullptr;
 		if ( pPrefUser != nullptr ) {
 			__instance = pPrefUser;
 			__instance->m_bLoadingSuccessful = true;
