@@ -24,7 +24,8 @@ for tool in cmake rc xres mimeset package getarch; do
 		echo "build-hpkg: '$tool' not found (pkgman install haiku_devel $HPKG_BUILD_DEPS)" >&2; exit 1; }
 done
 
-# 1. Build the core, the app and the core's test suite. The data path is
+# 1. Build the core, the app, and the core's test suite with the h2cli it
+#    drives. The data path is
 #    compiled into the core: /boot/system/data/hydrogen/data.
 #    Strip at link time: xres appends the resources after the ELF data,
 #    so stripping afterwards would cut them off.
@@ -38,7 +39,7 @@ mkdir -p "$BUILD"
 	-DWANT_CPPUNIT=ON \
 	-DCMAKE_EXE_LINKER_FLAGS=-s \
 	-DCMAKE_SHARED_LINKER_FLAGS=-s >/dev/null)
-make -C "$BUILD" -j"$JOBS" Hydrogen tests translations
+make -C "$BUILD" -j"$JOBS" Hydrogen tests h2cli translations
 grep -q "^#define H2_SYS_PATH \"/boot/system/data/hydrogen\"" "$BUILD/src/core/config.h" || {
 	echo "build-hpkg: the core's data path isn't /boot/system/data/hydrogen" >&2; exit 1; }
 

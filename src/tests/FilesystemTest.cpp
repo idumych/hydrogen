@@ -44,7 +44,12 @@ void FilesystemTest::setUp() {
 #else
 	m_sNoAccessPath = "/etc/shadow";
 #endif
+#ifdef __HAIKU__
+	// Packages are mounted read-only, for root too.
+	m_sReadOnlyPath = "/boot/system/lib/libroot.so";
+#else
 	m_sReadOnlyPath = "/etc/hosts";
+#endif
 	m_sFullAccessPath = QString( Filesystem::userDataPath() )
 		.append( "test.h2song"  );
 	m_sTmpPath = Filesystem::tmpFilePath( "test.h2song" );
@@ -63,11 +68,15 @@ void FilesystemTest::testPermissions(){
 	CPPUNIT_ASSERT( ! Filesystem::fileExists( m_sNotExistingPath, true ) );
 	CPPUNIT_ASSERT( Filesystem::fileExists( m_sNoAccessPath, true ) );
 	// Mode bits don't restrict root, and Haiku runs everything as root.
-	if ( geteuid() != 0 ) {
+	const bool bRoot = geteuid() == 0;
+	if ( ! bRoot ) {
 		CPPUNIT_ASSERT( ! Filesystem::fileReadable( m_sNoAccessPath, true ) );
 	}
 	CPPUNIT_ASSERT( Filesystem::fileReadable( m_sReadOnlyPath, true ) );
-	if ( geteuid() != 0 ) {
+#ifndef __HAIKU__
+	if ( ! bRoot )
+#endif
+	{
 		CPPUNIT_ASSERT( ! Filesystem::fileWritable( m_sReadOnlyPath, true ) );
 	}
 	CPPUNIT_ASSERT( Filesystem::fileWritable( m_sFullAccessPath, true ) );
