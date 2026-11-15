@@ -24,6 +24,7 @@
 #include <cmath>
 
 #include <core/Helpers/Xml.h>
+#include <core/Preferences/Preferences.h>
 
 #include <QDir>
 #include <QFileInfo>
@@ -322,6 +323,20 @@ void H2Test::checkXmlFilesEqual( const QString& sExpected, const QString& sActua
 			   fileType == FileType::Theme ) &&
 			 containedAndNonEmpty( "version", ii ) ) {
 			continue;
+		}
+
+		// Preferences replace a MIDI driver this build doesn't have (the
+		// shipped configuration names ALSA) with one it has.
+		if ( fileType == FileType::Preferences &&
+			 expectedLines.at( ii ).contains( "<driverName>" ) ) {
+			const QString sDriver = QString( expectedLines.at( ii ) )
+										.remove( "<driverName>" )
+										.remove( "</driverName>" )
+										.trimmed();
+			if ( ! H2Core::Preferences::isMidiDriverAvailable(
+					 H2Core::Preferences::parseMidiDriver( sDriver ) ) ) {
+				continue;
+			}
 		}
 
 		if ( fileType == FileType::Song &&

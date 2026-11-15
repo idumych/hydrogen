@@ -146,11 +146,11 @@ BString actionText( const std::shared_ptr<MidiAction>& pAction )
 	}
 	BString sText = toBString( MidiAction::typeToQString( pAction->getType() ) );
 	// The parameters the action has, guarded: the getters assert otherwise.
-	const auto requires = pAction->getRequires();
-	if ( requires & MidiAction::RequiresInstrument ) {
+	const auto nRequires = pAction->getRequires();
+	if ( nRequires & MidiAction::RequiresInstrument ) {
 		sText << " " << pAction->getInstrument();
 	}
-	if ( requires & MidiAction::RequiresFx ) {
+	if ( nRequires & MidiAction::RequiresFx ) {
 		sText << " " << pAction->getFx();
 	}
 	return sText;

@@ -51,7 +51,7 @@ namespace H2Core
  * engine. For details about the mapping of Event::Type to functions please see
  * the documentation of HydrogenApp::onEventQueueTimer().*/
 /** \ingroup docCore docEvent */
-class EventQueue : public H2Core::Object<EventQueue>
+class EventQueue final : public H2Core::Object<EventQueue>
 {
 	H2_OBJECT(EventQueue)
 public:
@@ -140,7 +140,7 @@ public:
 	 * displayed without line breaks.
 	 *
 	 * \return String presentation of current object.*/
-	QString toQString( const QString& sPrefix = "", bool bShort = true );
+	QString toQString( const QString& sPrefix = "", bool bShort = true ) const override;
 
 private:
 	EventQueue();
@@ -148,7 +148,7 @@ private:
 
 	std::deque< std::unique_ptr<Event> >m_eventQueue;
 
-	std::mutex m_mutex;
+	mutable std::mutex m_mutex;
 
 	/** Whether or not to push log messages.*/
 	bool m_bSilent;

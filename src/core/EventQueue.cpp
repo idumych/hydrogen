@@ -113,7 +113,7 @@ long EventQueue::createEventId() {
 	return m_randomDistribution( m_randomEngine );
 }
 
-QString EventQueue::toQString( const QString& sPrefix, bool bShort ) {
+QString EventQueue::toQString( const QString& sPrefix, bool bShort ) const {
 	std::lock_guard< std::mutex > lock( m_mutex );
 
 	QString s = Base::sPrintIndention;

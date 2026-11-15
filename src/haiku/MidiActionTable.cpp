@@ -260,9 +260,9 @@ void MidiActionTable::rebuild()
 		// The parameters this action has (upstream's Para. 1–3).
 		BGroupView* pParameters = new BGroupView( B_HORIZONTAL, B_USE_HALF_ITEM_SPACING );
 		if ( row.pAction != nullptr ) {
-			const auto requires = row.pAction->getRequires();
+			const auto nRequires = row.pAction->getRequires();
 			auto field = [&]( MidiAction::Requires flag, Field which, const char* sLabel, int nMin, int nValue ) {
-				if ( ( requires & flag ) == 0 ) {
+				if ( ( nRequires & flag ) == 0 ) {
 					return;
 				}
 				BMessage* pMessage = message( kMsgParameter );
@@ -278,18 +278,18 @@ void MidiActionTable::rebuild()
 				pParameters->GroupLayout()->AddView( pSpinner );
 			};
 			field( MidiAction::RequiresInstrument, Field::Instrument, B_TRANSLATE( "Instrument:" ), -1,
-				   ( requires & MidiAction::RequiresInstrument ) ? row.pAction->getInstrument() : 0 );
+				   ( nRequires & MidiAction::RequiresInstrument ) ? row.pAction->getInstrument() : 0 );
 			field( MidiAction::RequiresFx, Field::Fx, B_TRANSLATE( "FX:" ), 0,
-				   ( requires & MidiAction::RequiresFx ) ? row.pAction->getFx() : 0 );
+				   ( nRequires & MidiAction::RequiresFx ) ? row.pAction->getFx() : 0 );
 			field( MidiAction::RequiresComponent, Field::Component, B_TRANSLATE( "Component:" ), 0,
-				   ( requires & MidiAction::RequiresComponent ) ? row.pAction->getComponent() : 0 );
+				   ( nRequires & MidiAction::RequiresComponent ) ? row.pAction->getComponent() : 0 );
 			field( MidiAction::RequiresLayer, Field::Layer, B_TRANSLATE( "Layer:" ), 0,
-				   ( requires & MidiAction::RequiresLayer ) ? row.pAction->getLayer() : 0 );
+				   ( nRequires & MidiAction::RequiresLayer ) ? row.pAction->getLayer() : 0 );
 			field( MidiAction::RequiresPattern, Field::Pattern, B_TRANSLATE( "Pattern:" ), 0,
-				   ( requires & MidiAction::RequiresPattern ) ? row.pAction->getPattern() : 0 );
+				   ( nRequires & MidiAction::RequiresPattern ) ? row.pAction->getPattern() : 0 );
 			field( MidiAction::RequiresSong, Field::Song, B_TRANSLATE( "Song:" ), 0,
-				   ( requires & MidiAction::RequiresSong ) ? row.pAction->getSong() : 0 );
-			if ( requires & MidiAction::RequiresFactor ) {
+				   ( nRequires & MidiAction::RequiresSong ) ? row.pAction->getSong() : 0 );
+			if ( nRequires & MidiAction::RequiresFactor ) {
 				// A float upstream edited as a whole number.
 				BMessage* pMessage = message( kMsgParameter );
 				pMessage->AddInt32( "field", static_cast<int32>( Field::Factor ) );
@@ -452,11 +452,11 @@ void MidiActionTable::MessageReceived( BMessage* pMessage )
 			if ( pMessage->FindInt32( "action", &nType ) == B_OK ) {
 				auto pAction = std::make_shared<MidiAction>( static_cast<MidiAction::Type>( nType ) );
 				// Parameters start valid: the core rejects unset ones.
-				const auto requires = pAction->getRequires();
+				const auto nRequires = pAction->getRequires();
 				const auto pOld = row.pAction;
 				const auto oldRequires = pOld != nullptr ? pOld->getRequires() : MidiAction::RequiresNone;
 				auto keep = [&]( MidiAction::Requires flag, auto get, auto set, auto fallback ) {
-					if ( requires & flag ) {
+					if ( nRequires & flag ) {
 						( pAction.get()->*set )( ( oldRequires & flag ) ? ( pOld.get()->*get )() : fallback );
 					}
 				};

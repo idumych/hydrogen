@@ -141,8 +141,8 @@ class Sample : public H2Core::Object<Sample> {
 		Rubberband( const Rubberband* other )
 			: bUse( other->bUse ),
 			  fLengthInBeats( other->fLengthInBeats ),
-			  nCrispness( other->nCrispness ),
-			  fSemitonesToShift( other->fSemitonesToShift ) {};
+			  fSemitonesToShift( other->fSemitonesToShift ),
+			  nCrispness( other->nCrispness ) {};
 		bool operator==( const Rubberband& b ) const
 		{
 			return (

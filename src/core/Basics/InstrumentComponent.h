@@ -209,7 +209,7 @@ inline InstrumentComponent::Selection InstrumentComponent::getSelection() const 
 
 inline std::shared_ptr<InstrumentLayer> InstrumentComponent::operator[]( int nIdx ) const
 {
-	if ( nIdx < 0 || nIdx >= m_layers.size() ) {
+	if ( nIdx < 0 || nIdx >= static_cast<int>( m_layers.size() ) ) {
 		return nullptr;
 	}
 	return m_layers[ nIdx ];
@@ -217,7 +217,7 @@ inline std::shared_ptr<InstrumentLayer> InstrumentComponent::operator[]( int nId
 
 inline std::shared_ptr<InstrumentLayer> InstrumentComponent::getLayer( int nIdx ) const
 {
-	if ( nIdx < 0 || nIdx >= m_layers.size() ) {
+	if ( nIdx < 0 || nIdx >= static_cast<int>( m_layers.size() ) ) {
 		return nullptr;
 	}
 	return m_layers[ nIdx ];

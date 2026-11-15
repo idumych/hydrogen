@@ -28,6 +28,10 @@
 
 #include <QTest>
 
+#ifndef WIN32
+#include <unistd.h>
+#endif
+
 #include <core/Helpers/Filesystem.h>
 
 using namespace H2Core;
@@ -58,9 +62,14 @@ void FilesystemTest::testPermissions(){
 	___INFOLOG( "" );
 	CPPUNIT_ASSERT( ! Filesystem::fileExists( m_sNotExistingPath, true ) );
 	CPPUNIT_ASSERT( Filesystem::fileExists( m_sNoAccessPath, true ) );
-	CPPUNIT_ASSERT( ! Filesystem::fileReadable( m_sNoAccessPath, true ) );
+	// Mode bits don't restrict root, and Haiku runs everything as root.
+	if ( geteuid() != 0 ) {
+		CPPUNIT_ASSERT( ! Filesystem::fileReadable( m_sNoAccessPath, true ) );
+	}
 	CPPUNIT_ASSERT( Filesystem::fileReadable( m_sReadOnlyPath, true ) );
-	CPPUNIT_ASSERT( ! Filesystem::fileWritable( m_sReadOnlyPath, true ) );
+	if ( geteuid() != 0 ) {
+		CPPUNIT_ASSERT( ! Filesystem::fileWritable( m_sReadOnlyPath, true ) );
+	}
 	CPPUNIT_ASSERT( Filesystem::fileWritable( m_sFullAccessPath, true ) );
 
 	CPPUNIT_ASSERT( Filesystem::fileExists( m_sTmpPath, true ) );
