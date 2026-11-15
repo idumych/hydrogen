@@ -286,6 +286,18 @@ Proposed differences from upstream (each can be vetoed):
    BMediaRecorder. Not yet: per-instrument outputs (upstream's JACK track
    outputs).
 
+29. **MIDI sync with other programs** (Midi Kit driver): the driver
+   watches the MIDI roster and connects to the configured input/output
+   port whenever one of that name appears, so it follows a program that
+   restarts (upstream's drivers connect only when opened). Incoming
+   events are acted on at the time their sender stamped them — waiting
+   if they arrive early, as PowerMix's scheduled clock does — and MIDI
+   clock tempo is measured between those times: at 140 BPM Hydrogen read
+   136–145 BPM from arrival times, 140.00 now. With PowerMix: set
+   Settings > MIDI input to "PowerMix output" with MIDI clock and
+   transport input on; each PowerMix take then starts Hydrogen from the
+   top after the count-in, at PowerMix's tempo, and stops it after.
+
 ## Not yet captured
 
 Playlist editor, director, MIDI control dialog.

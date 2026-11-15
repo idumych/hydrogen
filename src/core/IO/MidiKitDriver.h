@@ -26,6 +26,8 @@
 
 #include <core/IO/MidiBaseDriver.h>
 
+#include <mutex>
+
 #if defined(H2CORE_HAVE_MIDIKIT) || _DOXYGEN_
 
 class BMidiLocalProducer;
@@ -34,6 +36,7 @@ namespace H2Core
 {
 
 class MidiKitConsumer;
+class MidiKitWatcher;
 
 /** MIDI input and output through the Haiku Midi Kit (libmidi2).
  *
@@ -58,7 +61,17 @@ public:
 
 	QString toQString( const QString& sPrefix = "", bool bShort = true ) const override;
 
+	/** A Midi Kit endpoint appeared or went away (from the watcher):
+	 * connects to the configured ports again, e.g. after the program
+	 * providing one restarted. */
+	void endpointsChanged( int32_t nGoneId );
+
 private:
+	/** Connect to the configured input/output port if it exists and we
+	 * aren't connected to it yet. Call with m_mutex held. */
+	void connectInput();
+	void connectOutput();
+
 	void sendControlChangeMessage( const MidiMessage& msg ) override;
 	void sendNoteOnMessage( const MidiMessage& msg ) override;
 	void sendNoteOffMessage( const MidiMessage& msg ) override;
@@ -69,6 +82,8 @@ private:
 	/** Midi Kit IDs of the external endpoints we connected to, or -1. */
 	int32_t m_nExternalProducerId;
 	int32_t m_nExternalConsumerId;
+	MidiKitWatcher* m_pWatcher;
+	std::mutex m_mutex;
 };
 
 };

@@ -107,6 +107,10 @@ class MidiMessage
 		static MidiMessage from( const NoteOff& noteOff );
 
 		const TimePoint& getTimePoint() const;
+		/** For drivers whose system stamps events with when they were
+		 * meant to happen (the Midi Kit): tempo from MIDI clock is
+		 * measured between these. */
+		void setTimePoint( const TimePoint& timePoint );
 
 		Type getType() const;
 		void setType( Type type );
@@ -162,6 +166,9 @@ class MidiMessage
 
 inline const TimePoint& MidiMessage::getTimePoint() const {
 	return m_timePoint;
+}
+inline void MidiMessage::setTimePoint( const TimePoint& timePoint ) {
+	m_timePoint = timePoint;
 }
 inline MidiMessage::Type MidiMessage::getType() const {
 	return m_type;
