@@ -6,6 +6,31 @@ The advanced drum machine for Linux, macOS, and Windows.
 
 ![screenshot](http://hydrogen-music.org/images/screenshots/main-window.png)
 
+## Haiku port
+
+This fork's `haiku-native` branch is a native [Haiku](https://www.haiku-os.org)
+port: the window, editors, mixer and dialogs use the Haiku API, audio goes
+through the Media Kit (Hydrogen shows up in Cortex as a node with main and send
+outputs) and MIDI through the Midi Kit. The audio engine is upstream Hydrogen's
+2.0 development branch, with its Qt Core/Xml/Network libraries.
+
+Install the `.hpkg` from the [releases page](https://github.com/idumych/hydrogen/releases)
+on Haiku R1/beta6 or later: `pkgman install ./hydrogen-<version>-1-x86_64.hpkg`.
+It pulls in Qt 5, libsndfile and libarchive from HaikuPorts and replaces
+HaikuPorts' Qt build of Hydrogen.
+
+| Platform | Status |
+|---|---|
+| Haiku R1/beta6, x86_64 | Tested in a QEMU VM: install, launch, playback through the Media Kit, song export |
+| Haiku arm64 | No package: Qt isn't available for Haiku arm64 |
+| Linux, macOS, Windows | Use upstream Hydrogen (links below) |
+
+## Screenshots
+
+![Hydrogen on Haiku](docs/screenshots/haiku-song-editor.png)
+
+The song and pattern editors on Haiku R1/beta6, with the GM kit demo song.
+
 ## Features
 * First-class MIDI support
 * Highly customizable

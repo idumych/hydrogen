@@ -6,6 +6,9 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- Haiku: a native port with its own Haiku-API interface, a Media Kit audio
+  driver that makes Hydrogen a node with main and send outputs, and a Midi Kit
+  driver with MIDI learn, clock and transport; packaged as an `.hpkg`.
 - New online import dialog with table view, search filtering, multi-select, and
   per-artifact metadata display. Replaces the legacy online import dialog.
 - PortMidi driver does open a input/output port which can be discovered and
