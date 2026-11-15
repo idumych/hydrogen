@@ -23,6 +23,7 @@
 #include <cppunit/extensions/TestFactoryRegistry.h>
 #include <cppunit/ui/text/TestRunner.h>
 #include <cppunit/TestResult.h>
+#include <cppunit/TestSuite.h>
 
 #include <core/Helpers/Filesystem.h>
 #include <core/Preferences/Preferences.h>
@@ -99,6 +100,26 @@ void fatal_signal( int sig )
 }
 #endif
 
+/** Adds the tests of @a pTest to @a pSuite, leaving out those named in
+ * @a excluded (a test or a whole suite); @a matched collects the names that
+ * were found. */
+static void addTestsExcept( CppUnit::Test* pTest, const QStringList& excluded,
+							CppUnit::TestSuite* pSuite, QStringList& matched )
+{
+	const QString sName = QString::fromStdString( pTest->getName() );
+	if ( excluded.contains( sName ) ) {
+		matched << sName;
+		return;
+	}
+	if ( pTest->getChildTestCount() == 0 ) {
+		pSuite->addTest( pTest );
+		return;
+	}
+	for ( int ii = 0; ii < pTest->getChildTestCount(); ++ii ) {
+		addTestsExcept( pTest->getChildTestAt( ii ), excluded, pSuite, matched );
+	}
+}
+
 int main( int argc, char **argv)
 {
 	auto start = std::chrono::high_resolution_clock::now();
@@ -113,12 +134,16 @@ int main( int argc, char **argv)
 	QCommandLineOption outputFileOption( QStringList() << "o" << "output-file", "If specified the output of the logger will not be directed to stdout but instead stored in a file (either plain file name or with relative of absolute path)",
 										 "Output File", "");
 	parser.addPositionalArgument( "test", "Run only this test or suite, e.g. MidiActionTest::testUndoAction", "[test]" );
+	QCommandLineOption excludeOption( QStringList() << "x" << "exclude",
+									  "Leave out this test or suite (repeatable), e.g. MidiDriverTest::testMidiClockDrift",
+									  "test" );
 	parser.addHelpOption();
 	parser.addOption( verboseOption );
 	parser.addOption( appveyorOption );
 	parser.addOption( childOption );
 	parser.addOption( benchmarkOption );
 	parser.addOption( outputFileOption );
+	parser.addOption( excludeOption );
 	parser.process(app);
 	QString sVerbosityString = parser.value( verboseOption );
 
@@ -173,7 +198,26 @@ int main( int argc, char **argv)
 	
 	CppUnit::TextUi::TestRunner runner;
 	CppUnit::TestFactoryRegistry &registry = CppUnit::TestFactoryRegistry::getRegistry();
-	runner.addTest( registry.makeTest() );
+	CppUnit::Test* pAllTests = registry.makeTest();
+	const QStringList excluded = parser.values( excludeOption );
+	if ( excluded.isEmpty() ) {
+		runner.addTest( pAllTests );
+	}
+	else {
+		// The filtered suite owns the tests it runs, so the registry's suite,
+		// which would delete them too, stays alive until the process ends.
+		auto pFiltered = new CppUnit::TestSuite( pAllTests->getName() );
+		QStringList matched;
+		addTestsExcept( pAllTests, excluded, pFiltered, matched );
+		for ( const auto& sName : excluded ) {
+			if ( ! matched.contains( sName ) ) {
+				qCritical() << "No test or suite named" << sName << "to exclude";
+				H2Core::Filesystem::rm( userDataDir.path(), true, true );
+				return 1;
+			}
+		}
+		runner.addTest( pFiltered );
+	}
 	
 	std::unique_ptr<AppVeyor::BuildWorkerApiClient> appveyorApiClient;
 	std::unique_ptr<AppVeyorTestListener> avtl;

@@ -44,7 +44,11 @@ grep -q "^#define H2_SYS_PATH \"/boot/system/data/hydrogen\"" "$BUILD/src/core/c
 	echo "build-hpkg: the core's data path isn't /boot/system/data/hydrogen" >&2; exit 1; }
 
 # The core's CppUnit suite, run from its build folder like upstream's CI.
-(cd "$BUILD/src/tests" && ./tests)
+# The MIDI clock drift test times a software clock against a 2 BPM
+# tolerance; after the rest of the suite, in a VM, it failed about one run
+# in five (upstream skips it on its CI VMs), and on its own it passes.
+DRIFT=MidiDriverTest::testMidiClockDrift
+(cd "$BUILD/src/tests" && ./tests --exclude $DRIFT && ./tests $DRIFT)
 
 # 2. Package tree, relative to the install location (/boot/system)
 CORE=$(cd "$BUILD/src/core" && ls libhydrogen-core-*.so)
